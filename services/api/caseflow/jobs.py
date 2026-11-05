@@ -13,6 +13,8 @@ def enqueue(case_id, actor, correlation, action='investigate', version=None):
         if active:
             if action == 'resolve' and (case['status'] != 'approved' or version != case['proposal_version'] or version != case['approved_version']):
                 raise DomainError('A current supervisor approval is required')
+            if action == 'resolve' and (not active['resume'] or active['resume'].get('kind') != 'approval' or active['resume'].get('version') != version):
+                raise DomainError('Investigation is still saving its checkpoint; retry resolution when it finishes')
             return serial(active)
         if settings.mode == 'LIVE' and live_missing():
             raise DomainError('LIVE configuration is incomplete. Check provider settings.', 503)

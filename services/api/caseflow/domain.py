@@ -1,9 +1,10 @@
 import uuid
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from psycopg.types.json import Jsonb
 from .config import settings
 from .db import connection, event, serial
+from .execution import require_execution
 
 class DomainError(Exception):
     def __init__(self, message, status=409):
@@ -11,14 +12,20 @@ class DomainError(Exception):
 
 class ProposalInput(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    amount: int = Field(gt=0, le=100_000)
+    amount: int = Field(strict=True, gt=0, le=100_000)
     reason: str = Field(min_length=10, max_length=1000)
 
 class Decision(BaseModel):
     model_config = ConfigDict(extra='forbid')
     action: Literal['propose', 'request_evidence', 'reject']
-    amount: int = Field(ge=0, le=100_000)
+    amount: int = Field(strict=True, ge=0, le=100_000)
     reason: str = Field(min_length=10, max_length=1000)
+
+    @model_validator(mode='after')
+    def consistent_amount(self):
+        if (self.action == 'propose' and self.amount <= 0) or (self.action != 'propose' and self.amount != 0):
+            raise ValueError('Only a reimbursement proposal can carry a positive amount')
+        return self
 
 
 def get_case(conn, case_id, lock=False):
@@ -36,10 +43,13 @@ def require_actor(conn, actor, roles=('analyst', 'supervisor')):
     return row
 
 
-def proposal(case_id, actor, data: ProposalInput, correlation, operation_key=None):
+def proposal(case_id, actor, data: ProposalInput, correlation, operation_key=None, edit_existing=False):
     with connection() as conn:
         require_actor(conn, actor)
         case = get_case(conn, case_id, True)
+        require_execution(conn, case_id)
+        if edit_existing and (not case['proposal_version'] or case['status'] not in {'awaiting_approval', 'approved'}):
+            raise DomainError('Only an existing reviewable proposal can be edited')
         if operation_key:
             old = conn.execute('SELECT result FROM tool_receipts WHERE case_id=%s AND operation_key=%s', (case_id, operation_key)).fetchone()
             if old:
@@ -62,6 +72,7 @@ def approve(case_id, actor, version, correlation):
     with connection() as conn:
         require_actor(conn, actor, ('supervisor',))
         case = get_case(conn, case_id, True)
+        require_execution(conn, case_id)
         if case['status'] not in {'awaiting_approval', 'approved'} or version != case['proposal_version']:
             raise DomainError('Approval must match the current proposal version')
         conn.execute("UPDATE cases SET status='approved',approved_version=%s,approved_by=%s WHERE id=%s", (version, actor, case_id))
@@ -73,6 +84,7 @@ def register_resolution(case_id, actor, version, correlation):
     with connection() as conn:
         require_actor(conn, actor, ('supervisor',))
         case = get_case(conn, case_id, True)
+        require_execution(conn, case_id)
         existing = conn.execute('SELECT * FROM resolutions WHERE case_id=%s', (case_id,)).fetchone()
         if existing:
             if existing['proposal_version'] != version:
@@ -92,6 +104,7 @@ def request_evidence(case_id, actor, reason, correlation):
     with connection() as conn:
         require_actor(conn, actor)
         case = get_case(conn, case_id, True)
+        require_execution(conn, case_id)
         if case['status'] in {'resolved', 'rejected'}:
             raise DomainError('Case is closed')
         evidence = case['evidence']
@@ -99,7 +112,7 @@ def request_evidence(case_id, actor, reason, correlation):
         if not any(x['id'] == item['id'] for x in evidence):
             evidence.append(item)
             event(conn, case_id, actor, 'evidence_requested', item, correlation)
-        conn.execute("UPDATE cases SET evidence=%s,status='needs_evidence' WHERE id=%s", (Jsonb(evidence), case_id))
+        conn.execute("UPDATE cases SET evidence=%s,status='needs_evidence',approved_version=NULL,approved_by=NULL WHERE id=%s", (Jsonb(evidence), case_id))
         return item
 
 
@@ -107,6 +120,7 @@ def reject(case_id, actor, version, correlation):
     with connection() as conn:
         require_actor(conn, actor, ('supervisor',))
         case = get_case(conn, case_id, True)
+        require_execution(conn, case_id)
         if case['status'] not in {'awaiting_approval', 'approved', 'needs_evidence'} or version != case['proposal_version']:
             raise DomainError('Only the current open proposal can be rejected')
         conn.execute("UPDATE cases SET status='rejected',approved_version=NULL,approved_by=NULL WHERE id=%s", (case_id,))

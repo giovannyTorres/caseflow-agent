@@ -1,3 +1,7 @@
+# Initial implementation verification (superseded by the audit)
+
+Current release-candidate evidence and corrected behavior are in [audit.md](audit.md). The following record is retained as historical context, not a current approval.
+
 # Verification record — 2026-11-05
 
 All data and decisions used in local tests are synthetic fixtures. A passing test count is software verification, not model quality or financial impact.
@@ -17,7 +21,7 @@ All data and decisions used in local tests are synthetic fixtures. A passing tes
 
 Tests use a separate PostgreSQL database, default `caseflow_test`, and refuse to truncate any database whose name does not end in `_test`. Create it once with `docker compose exec -T db createdb -U caseflow caseflow_test`. Override only with an isolated `TEST_DATABASE_URL` for CI. Tests do not use the persistent demonstration database.
 
-`npm run test:e2e` runs against the existing same-origin DEMO stack. On a fresh database it executes all mutations; when rerun against an already resolved case, it verifies the durable resolution and avoids duplicating it. For independent full CI evidence, the workflow provisions a fresh Compose volume. System Chromium is used if available; otherwise `npx playwright install --with-deps chromium` supplies the Playwright browser. `CHROMIUM_PATH` and `WEB_BASE_URL` may override those locations. Use `localhost:3102` to match the configured trusted origin.
+`npm run test:e2e` runs against the existing same-origin DEMO stack. The audited browser suite requires fresh fixture state and fails if a named transition is skipped. It no longer counts pre-resolved cases as execution of a new investigation. For independent full CI evidence, the workflow provisions a fresh Compose volume. System Chromium is used if available; otherwise `npx playwright install --with-deps chromium` supplies the Playwright browser. `CHROMIUM_PATH` and `WEB_BASE_URL` may override those locations. Use `localhost:3102` to match the configured trusted origin.
 
 Actual screenshots are in `docs/screenshots`: inbox, investigation awaiting review, resolved audit trail and mobile layout. Desktop and mobile were visually inspected; keyboard focus and no horizontal mobile overflow were checked. This does not establish full WCAG conformance.
 

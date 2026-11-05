@@ -11,7 +11,22 @@ class JsonFormatter(logging.Formatter):
                            'correlation_id': getattr(record, 'correlation_id', None),
                            'trace_id': format(trace.get_current_span().get_span_context().trace_id, '032x')})
 
+def sanitize_http_span(span, scope):
+    if not span.is_recording():
+        return
+    # Do not export query strings. Secret-like values can be supplied to any route,
+    # including /health, before business validation ever runs.
+    path = scope.get('path', '/').split('?', 1)[0]
+    host, port = scope.get('server') or ('localhost', 80)
+    safe_url = f"{scope.get('scheme', 'http')}://{host}:{port}{path}"
+    for key, value in [('http.url', safe_url), ('url.full', safe_url), ('http.target', path), ('url.query', '')]:
+        span.set_attribute(key, value)
+
+
 def setup():
+    # Uvicorn's default access format includes the raw query; retain our bounded
+    # structured method/status/correlation log instead, across every entrypoint.
+    logging.getLogger('uvicorn.access').disabled = True
     handler = logging.StreamHandler()
     handler.setFormatter(JsonFormatter())
     if not logging.getLogger('caseflow').handlers:

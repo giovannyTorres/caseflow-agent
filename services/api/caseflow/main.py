@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Depends, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyCookie
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -15,7 +16,8 @@ from .config import settings, live_missing
 from .db import connection, migrate, seed, password_hash, serial, event
 from .domain import DomainError, ProposalInput, approve, reject, proposal, get_case
 from .jobs import enqueue
-from .telemetry import setup
+from .worker import recoverable_state
+from .telemetry import setup, sanitize_http_span
 
 @asynccontextmanager
 async def lifespan(app):
@@ -27,7 +29,7 @@ async def lifespan(app):
 app = FastAPI(title='Caseflow Agent API', version='1.0.0', lifespan=lifespan,
               docs_url='/api/docs', openapi_url='/api/openapi.json', redoc_url='/api/redoc',
               description='Synthetic investigations; no real banking operations. DEMO fixtures are explicitly labelled.')
-FastAPIInstrumentor.instrument_app(app)
+FastAPIInstrumentor.instrument_app(app, server_request_hook=sanitize_http_span)
 
 @app.middleware('http')
 async def correlation_and_csrf(request: Request, call_next):
@@ -40,11 +42,23 @@ async def correlation_and_csrf(request: Request, call_next):
             return JSONResponse({'detail': 'Cross-site request rejected'}, status_code=403)
         if request.headers.get('content-type', '').split(';')[0] != 'application/json':
             return JSONResponse({'detail': 'Use application/json'}, status_code=415)
+    if request.method in {'POST', 'PUT', 'DELETE', 'PATCH'}:
+        body = bytearray()
+        async for part in request.stream():
+            body.extend(part)
+            if len(body) > 65536:
+                return JSONResponse({'detail': 'Request body exceeds 64 KiB'}, status_code=413)
+        request._body = bytes(body)
     response = await call_next(request)
     response.headers['X-Correlation-ID'] = request.state.correlation
     response.headers['Cache-Control'] = 'no-store'
     logging.getLogger('caseflow.http').info(f'{request.method} {response.status_code}', extra={'correlation_id': request.state.correlation})
     return response
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request, exc):
+    # FastAPI's default error includes raw input, including password fields.
+    return JSONResponse({'detail': [{'loc': e['loc'], 'type': e['type'], 'msg': e['msg']} for e in exc.errors()]}, status_code=422)
 
 @app.exception_handler(DomainError)
 async def domain_error(request, exc):
@@ -62,7 +76,7 @@ class Login(BaseModel):
 
 class Version(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    version: int = Field(ge=0)
+    version: int = Field(strict=True, ge=0)
 
 
 session_cookie = APIKeyCookie(name='caseflow_session', auto_error=False)
@@ -89,7 +103,16 @@ def config():
             'provider_verification': 'SDK contract fixtures only; external service not verified'}
 
 @app.post('/api/auth/login')
-def login(data: Login, response: Response):
+def login(data: Login, response: Response, request: Request):
+    key = hashlib.sha256((request.client.host if request.client else 'unknown').encode()).hexdigest()
+    with connection() as conn:
+        row = conn.execute("""INSERT INTO login_attempts(key,window_start,attempts) VALUES(%s,now(),1)
+          ON CONFLICT(key) DO UPDATE SET
+          attempts=CASE WHEN login_attempts.window_start<now()-interval '60 seconds' THEN 1 ELSE login_attempts.attempts+1 END,
+          window_start=CASE WHEN login_attempts.window_start<now()-interval '60 seconds' THEN now() ELSE login_attempts.window_start END
+          RETURNING attempts""", (key,)).fetchone()
+    if row['attempts'] > 20:
+        raise DomainError('Too many sign-in attempts. Retry after one minute.', 429)
     with connection() as conn:
         row = conn.execute('SELECT * FROM users WHERE username=%s AND mode=%s', (data.username, settings.mode)).fetchone()
         # Equal-cost hash even for an unknown username.
@@ -152,13 +175,14 @@ def resolve_case(case_id: str, data: Version, request: Request, actor=Depends(us
 
 @app.post('/api/cases/{case_id}/proposal')
 def edit_proposal(case_id: str, data: ProposalInput, request: Request, actor=Depends(user)):
-    return proposal(case_id, actor['username'], data, request.state.correlation)
+    return proposal(case_id, actor['username'], data, request.state.correlation, edit_existing=True)
+
 
 @app.post('/api/cases/{case_id}/cancel')
 def cancel(case_id: str, request: Request, actor=Depends(user)):
     with connection() as conn:
         get_case(conn, case_id, True)
         conn.execute("UPDATE jobs SET status='cancelled',updated_at=now() WHERE case_id=%s AND status IN ('queued','running')", (case_id,))
-        conn.execute("UPDATE cases SET status='failed' WHERE id=%s AND status='investigating'", (case_id,))
+        recoverable_state(conn, case_id)
         event(conn, case_id, actor['username'], 'cancellation_requested', {}, request.state.correlation)
     return {'status': 'cancelled'}

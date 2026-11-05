@@ -1,8 +1,9 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   api,
+  ApiError,
   filterCases,
   isWorking,
   label,
@@ -135,14 +136,19 @@ export default function Home() {
     [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
-    [persona, setPersona] = useState("analyst"),
-    [password, setPassword] = useState("demo-pass");
+    [persona, setPersona] = useState(""),
+    [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState<
       "approve" | "reject" | "resolve" | null
     >(null),
     [editing, setEditing] = useState(false),
     [amount, setAmount] = useState(""),
     [reason, setReason] = useState("");
+  const confirmationTrigger = useRef<HTMLElement | null>(null);
+  function openConfirmation(action: "approve" | "reject" | "resolve") {
+    confirmationTrigger.current = document.activeElement as HTMLElement | null;
+    setConfirm(action);
+  }
   const refresh = useCallback(async (id?: string) => {
     const all = await api<CaseSummary[]>("/cases");
     setCases(all);
@@ -162,13 +168,20 @@ export default function Home() {
     async function init() {
       try {
         const c = await api<Config>("/config");
-        if (alive) setConfig(c);
+        if (alive) {
+          setConfig(c);
+          setPersona(c.mode === "DEMO" ? "analyst" : "");
+          setPassword(c.mode === "DEMO" ? "demo-pass" : "");
+        }
         const current = await api<User>("/me");
         if (alive) {
           setUser(current);
           await refresh();
         }
-      } catch {
+      } catch (e) {
+        if (alive && !(e instanceof ApiError && e.status === 401)) {
+          setError("Workspace connection failed. Retry the connection before signing in.");
+        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -203,7 +216,18 @@ export default function Home() {
     if (!user) return;
     const timer = setInterval(
       () => {
-        void refresh(selected).catch(() => {});
+        void refresh(selected)
+          .then(() => setError((previous) => previous.startsWith("Refresh failed.") ? "" : previous))
+          .catch((e) => {
+            if (e instanceof ApiError && e.status === 401) {
+              setUser(null);
+              setDetail(null);
+              setSelected("");
+              setError("Your session expired. Sign in again.");
+            } else {
+              setError("Refresh failed. Retrying the connection automatically.");
+            }
+          });
       },
       ["queued", "running", "pending", "processing"].includes(
         detail?.job?.status || "",
@@ -215,7 +239,6 @@ export default function Home() {
   }, [user, selected, detail?.job?.status, refresh]);
   useEffect(() => {
     if (!confirm) return;
-    const previous = document.activeElement as HTMLElement | null;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape" && !busy) setConfirm(null);
       if (e.key === "Tab") {
@@ -226,6 +249,10 @@ export default function Home() {
         );
         const first = focusable[0],
           last = focusable.at(-1);
+        if (!focusable.length) {
+          e.preventDefault();
+          return;
+        }
         if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last?.focus();
@@ -238,7 +265,7 @@ export default function Home() {
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
-      previous?.focus();
+      if (!document.querySelector("[role=dialog]")) confirmationTrigger.current?.focus();
     };
   }, [confirm, busy]);
   async function login(e: React.FormEvent) {
@@ -304,7 +331,7 @@ export default function Home() {
       ["awaiting_approval", "proposed"].includes(c.status),
     ).length,
     resolved = cases.filter((c) => c.status === "resolved").length;
-  const mode = config?.mode || user?.mode || "DEMO";
+  const mode = config?.mode || user?.mode || "UNAVAILABLE";
   return (
     <div className="app-shell">
       <a href="#main" className="skip-link">
@@ -377,9 +404,9 @@ export default function Home() {
               {user?.role === "supervisor" ? "S" : "A"}
             </span>
             <div>
-              <strong>{user ? label(user.username) : "Demo workspace"}</strong>
+              <strong>{user ? label(user.username) : "Sign in"}</strong>
               <small>
-                {user ? label(user.role) : "Select a role to begin"}
+                {user ? label(user.role) : "An account is required"}
               </small>
             </div>
             {user && (
@@ -484,7 +511,8 @@ export default function Home() {
               <form className="login-card" onSubmit={login}>
                 <div className="section-kicker">ENTER THE WORKSPACE</div>
                 <h2>Your next case awaits.</h2>
-                <p>Choose a demo role to explore a complete investigation.</p>
+                <p>{mode === "DEMO" ? "Choose a demo role to explore a complete investigation." : "Sign in with the account provisioned by your operator."}</p>
+                {mode === "DEMO" ? <>
                 <label htmlFor="persona">Workspace role</label>
                 <select
                   id="persona"
@@ -498,6 +526,11 @@ export default function Home() {
                     Supervisor · Review & authorize
                   </option>
                 </select>
+                </> : <>
+                  <label htmlFor="persona">Username</label>
+                  <input id="persona" autoComplete="username" value={persona}
+                    onChange={(e) => setPersona(e.target.value)} maxLength={80} required />
+                </>}
                 <label htmlFor="password">Password</label>
                 <input
                   id="password"
@@ -506,20 +539,24 @@ export default function Home() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  maxLength={128}
                 />
+                {mode === "DEMO" && (
                 <small className="credential-note">
                   Demo credentials: analyst or supervisor / demo-pass
                 </small>
-                <button className="button primary wide" disabled={busy}>
+                )}
+                <button className="button primary wide" disabled={busy || !config}>
                   {busy ? "Opening workspace…" : "Enter workspace"}
                   <Icon name="arrow" size={18} />
                 </button>
+                {!config && <button type="button" className="button secondary wide" onClick={() => window.location.reload()}>Retry connection</button>}
                 <div className="demo-note">
                   <span className="badge neutral">{mode.toUpperCase()}</span>
                   <p>
-                    Example decisions are deterministic. Tools, permissions and
+                    {mode === "DEMO" ? <>Example decisions are deterministic. Tools, permissions and
                     persistence execute for real. Free-form AI decisions require
-                    LIVE configuration.
+                    LIVE configuration.</> : mode === "LIVE" ? <>Model decisions use the configured provider. Missing configuration or provider errors never switch to demo responses.</> : <>The server mode is unavailable until the connection is restored.</>}
                   </p>
                 </div>
               </form>
@@ -1165,7 +1202,7 @@ export default function Home() {
                                         <button
                                           className="button primary wide"
                                           disabled={busy}
-                                          onClick={() => setConfirm("approve")}
+                                          onClick={() => openConfirmation("approve")}
                                         >
                                           <Icon name="shield" size={16} />
                                           Approve v{detail.proposal.version}
@@ -1173,7 +1210,7 @@ export default function Home() {
                                         <button
                                           className="button secondary wide"
                                           disabled={busy}
-                                          onClick={() => setConfirm("resolve")}
+                                          onClick={() => openConfirmation("resolve")}
                                         >
                                           <Icon name="check" size={16} />
                                           Record resolution
@@ -1181,7 +1218,7 @@ export default function Home() {
                                         <button
                                           className="button danger wide"
                                           disabled={busy}
-                                          onClick={() => setConfirm("reject")}
+                                          onClick={() => openConfirmation("reject")}
                                         >
                                           Reject proposal
                                         </button>
@@ -1203,7 +1240,7 @@ export default function Home() {
                                   <p>{detail.status === "rejected" ? "The supervisor rejected this case. The decision remains in the audit trail." : "A proposal appears here once the investigation has enough evidence."}</p>
                                 </div>
                                 {detail.status === "needs_evidence" && user.role === "supervisor" && (
-                                  <button className="button danger wide" disabled={busy} onClick={() => setConfirm("reject")}>
+                                  <button className="button danger wide" disabled={busy} onClick={() => openConfirmation("reject")}>
                                     Reject case
                                   </button>
                                 )}

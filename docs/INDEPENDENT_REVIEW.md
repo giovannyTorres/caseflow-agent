@@ -1,4 +1,6 @@
-# Independent local review
+# Initial independent local review
+
+The later technical release-candidate audit is [audit.md](audit.md); this document preserves the original construction review.
 
 Session date: 2026-11-05. All data used in these checks is original and synthetic. No model service was contacted and no cloud resource was created.
 

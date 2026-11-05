@@ -75,6 +75,12 @@ export function isWorking(job?: Job | null) {
     job?.status || "",
   );
 }
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 export async function api<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(`/api${path}`, {
     method: body === undefined ? "GET" : "POST",
@@ -84,12 +90,13 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(
+    throw new ApiError(
       typeof data.detail === "string"
         ? data.detail
         : response.status === 401
           ? "Please sign in to continue."
           : `Request could not be completed (${response.status}).`,
+      response.status,
     );
   }
   if (response.status === 204) return undefined as T;

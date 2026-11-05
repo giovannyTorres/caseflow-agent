@@ -23,3 +23,10 @@ No keys are needed for DEMO. No paid calls were made during development. Running
 Timeout is configured by `MODEL_TIMEOUT_SECONDS`, output limit by `MODEL_MAX_TOKENS`. OpenAI has one retry (two total attempts), Gemini two total attempts, and an outer time budget of twice the request timeout. A semaphore allows at most two provider calls per process; the worker performs one investigation at a time. Cancellation propagates to the asynchronous SDK and MCP task. Provider errors are recorded as safe recoverable job failures with correlation IDs; secrets and raw provider exception bodies are not exposed.
 
 The contracts have been verified with HTTP transport fixtures. Real service access, model availability, credentials, provider-specific quotas, real latency and output quality remain **unverified** until this procedure is run with credentials.
+
+
+## Contract audit corrections
+
+See [audit](audit.md). Both official SDKs now require an unblocked terminal success before accepting a strictly typed decision. OpenAI `length`, `content_filter`, refusals and unexpected tool calls fail closed; Gemini MAX_TOKENS, prompt/candidate safety blocks and nontext/tool output fail closed. Schema validation alone is insufficient. Queue wait is inside the timeout, retries remain bounded, and clients close on success, errors and cancellation. Externally visible errors are sanitized. Selecting Gemini directly without MODEL_NAME chooses its documented Gemini default; Compose/.env may explicitly set a model, and mismatched provider/model configuration is reported rather than silently substituted.
+
+The model returns a structured decision; graph nodes select MCP tools under server control. Native SDK function calling and token streaming are not claimed. LIVE continues to operate a synthetic simulator, and real provider acceptance/model quality remains unverified without explicitly authorized smoke calls.

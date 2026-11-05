@@ -13,3 +13,8 @@
 - Fixed a no-proposal rejection UI gap, pre-start cancellation recovery and container source permissions.
 - Verified the single-command local launcher twice and an actual API/worker process restart across a persisted interruption; retained its audit trace. Reset only the five owned synthetic fixtures for the next reviewer.
 - Final corrected Docker rebuild blocked by external registry HTTP 503; final full Compose boot is explicitly pending, while the local app remains functional. No external model service or Azure deployment was verified.
+
+
+## Technical audit update — 2026-11-05
+
+The previous build record above is historical. The audit began from clean commit7207707 and preserved existing data/history. It corrected lease/cancellation/checkpoint integrity, resolution enqueue semantics, terminal provider validation and resource cleanup, bounded request handling, LIVE/configuration UI state and keyboard focus. It reproduced a clean `--pull --no-cache` build and four healthy services on a new audit Compose project; a real API/worker restart retained the interruption checkpoint and led to exactly one resolution. The final snapshot, including query-log redaction and UI corrections, also completed an uncached rebuild; 71 backend tests passed with 1 LIVE skip, 3 frontend unit tests and all 7 browser tests passed. A second actual container restart again preserved the session/checkpoint and produced exactly one resolution. [audit.md](audit.md) contains exact commands, findings, source references and current evidence; no LIVE service verification or external publication is claimed.

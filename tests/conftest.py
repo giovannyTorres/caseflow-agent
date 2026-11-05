@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 def clean_database():
     migrate()
     with connection() as conn:
-        conn.execute('TRUNCATE users,sessions,cases,jobs,events,messages,resolutions,tool_receipts RESTART IDENTITY CASCADE')
+        conn.execute('TRUNCATE login_attempts,users,sessions,cases,jobs,events,messages,resolutions,tool_receipts RESTART IDENTITY CASCADE')
         for table in ['checkpoint_writes', 'checkpoint_blobs', 'checkpoints']:
             if conn.execute('SELECT to_regclass(%s) AS name', (table,)).fetchone()['name']:
                 conn.execute(f'TRUNCATE {table}')

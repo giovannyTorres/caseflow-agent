@@ -1,6 +1,6 @@
 # Guía de Caseflow Agent
 
-El arranque local verificado es `./scripts/demo-local.sh` (Python 3.12, uv, Node 24 y Docker). Conserva PostgreSQL en Docker y ejecuta web, API y worker en el host. El rebuild final de contenedores quedó bloqueado por HTTP 503 del registro externo; no se presenta como verificado.
+El arranque local verificado es `./scripts/demo-local.sh` (Python 3.12, uv, Node 24 y Docker). Conserva PostgreSQL en Docker y ejecuta web, API y worker en el host. El bloqueo HTTP 503 inicial se volvió a comprobar: esta auditoría reconstruyó sin caché las imágenes y arrancó un proyecto Compose aislado con los cuatro servicios saludables. El script local sigue siendo una alternativa explícita, no evidencia de reconstrucción Docker.
 
 También se incluye el arranque completo con contenedores: `docker compose up --build -d` y abra http://localhost:3102. Usuario `analyst` o `supervisor`, contraseña pública de DEMO `demo-pass`.
 
@@ -13,3 +13,6 @@ Las instrucciones LIVE están en [live.md](live.md). No hay fallback silencioso.
 Consulte [testing.md](testing.md) para pruebas y limitaciones, [architecture.md](architecture.md) para Mermaid y decisiones y [operations.md](operations.md) para secretos y recuperación. Los archivos Azure son configuración revisable; no prueban un despliegue efectuado ni conformidad regulatoria.
 
 Para repetir el recorrido, ejecute expresamente `PYTHONPATH=services/api uv run python scripts/reset_demo.py --confirm-synthetic-data` sin jobs activos. Solo reinicia los cinco casos DEMO originales y sus checkpoints. No se reinician datos de forma oculta al arrancar.
+
+
+La auditoría actual está en [docs/audit.md](audit.md): incluye defectos corregidos, reconstrucción sin caché, volumen aislado y separación entre pruebas con transporte simulado y servicios LIVE no verificados. La batería de navegador exige escenarios iniciales nuevos y ya no omite transiciones por encontrar expedientes resueltos. No se borran datos automáticamente al arrancar.

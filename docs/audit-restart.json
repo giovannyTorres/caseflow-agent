@@ -1,0 +1,23 @@
+{
+  "scenario": "interruption",
+  "containers_restarted": [
+    "api",
+    "worker"
+  ],
+  "persisted_session": true,
+  "final_status": "resolved",
+  "resolution_count": 1,
+  "events": [
+    "job_queued",
+    "evidence_gathered",
+    "job_waiting",
+    "job_queued",
+    "decision_prepared",
+    "proposal_prepared",
+    "job_waiting",
+    "proposal_approved",
+    "job_queued",
+    "resolution_registered",
+    "job_completed"
+  ]
+}

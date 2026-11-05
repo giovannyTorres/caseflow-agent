@@ -1,0 +1,13 @@
+# Isolated verification: docker compose -p audit-caseflow -f compose.yaml -f compose.audit.yaml ...
+services:
+  db:
+    ports: !override ["127.0.0.1:5642:5432"]
+  api:
+    ports: ["127.0.0.1:8202:8102"]
+    environment:
+      APP_ORIGIN: http://localhost:3202
+  worker:
+    environment:
+      APP_ORIGIN: http://localhost:3202
+  web:
+    ports: !override ["127.0.0.1:3202:3102"]

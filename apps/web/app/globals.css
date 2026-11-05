@@ -64,7 +64,7 @@
 
 :root {
   --ink: #232333;
-  --muted: #858592;
+  --muted: #666675;
   --violet: #6750ce;
   --violet-light: #f1ecff;
   --line: #eaeaf0;
@@ -1996,10 +1996,10 @@ main {
 .section-kicker,
 .nav-label,
 .table-head {
-  color: #81758f;
+  color: #61566f;
 }
 .workflow-step small {
-  color: #8e819b;
+  color: #61566f;
 }
 .timeline p,
 .message p,
@@ -2011,27 +2011,27 @@ main {
 .timeline small,
 .record dt,
 .review-note {
-  color: #8b739c;
+  color: #61566f;
 }
 .proposal-empty p,
 .investigation-empty p,
 .text-link {
-  color: #8b769f;
+  color: #61566f;
 }
 .badge.neutral {
   color: #756485;
 }
 .badge.warning {
-  color: #93732f;
+  color: #7a5a15;
 }
 .badge.positive {
   color: #45745c;
 }
 .priority {
-  color: #7f738c;
+  color: #61566f;
 }
 .small-indicator {
-  color: #82758e;
+  color: #61566f;
 }
 .filters {
   flex-wrap: wrap;
@@ -2070,3 +2070,8 @@ main {
     font-size: 9px;
   }
 }
+
+/* Audit: text remains readable on white and the pale violet surfaces used above. */
+.text-button, .mode-badge, .soft-count, .version { color: #65477e; }
+.alert.success { color: #376849; }
+.alert.error { color: #8b3838; }

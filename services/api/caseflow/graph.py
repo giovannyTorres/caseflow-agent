@@ -4,6 +4,7 @@ from langgraph.types import interrupt
 from .config import settings
 from .db import connection, event, scenario_fixtures
 from .domain import Decision, get_case
+from .execution import require_execution
 from .mcp_client import call_tool
 from .providers import provider
 
@@ -23,6 +24,8 @@ async def tool(state, name, **args):
 
 def progress(state, name, detail):
     with connection() as conn:
+        get_case(conn, state['case_id'], True)
+        require_execution(conn, state['case_id'])
         event(conn, state['case_id'], state['actor'], name, detail, state['correlation'])
 
 async def gather(state):
@@ -44,6 +47,8 @@ async def decide(state):
                                           'movements': state['movements'], 'policy': state['policy']})
     progress(state, 'decision_prepared', {'action': decision.action, 'mode': settings.mode})
     with connection() as conn:
+        get_case(conn, state['case_id'], True)
+        require_execution(conn, state['case_id'])
         conn.execute('INSERT INTO messages(case_id,role,content) VALUES(%s,%s,%s)', (case['id'], 'assistant', decision.reason))
     return {'decision': decision.model_dump()}
 

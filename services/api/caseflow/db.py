@@ -20,6 +20,7 @@ def migrate():
     with connection() as conn:
         conn.execute('SELECT pg_advisory_xact_lock(914022)')
         conn.execute(sql)
+        conn.execute((Path(__file__).parent / 'migration_002.sql').read_text())
 
 
 def password_hash(password, salt):

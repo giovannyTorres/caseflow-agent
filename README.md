@@ -14,13 +14,13 @@ A verified alternative runs the application processes on the host and PostgreSQL
 ./scripts/demo-local.sh
 ```
 
-This requires Python 3.12, uv, Node 24 and Docker; it installs locked dependencies if missing, builds Next, starts API/worker/web, and stops app processes on Ctrl+C while preserving the database. The final all-container rebuild was blocked by an external registry HTTP 503 during this session; see [verification details](docs/testing.md).
+This requires Python 3.12, uv, Node 24 and Docker; it installs locked dependencies if missing, builds Next, starts API/worker/web, and stops app processes on Ctrl+C while preserving the database. The prior registry HTTP 503 was rechecked during the audit: an uncached build and fresh isolated four-service Compose startup now pass. See [current audit evidence](docs/audit.md); the launcher remains an explicit host-runtime alternative, not Docker-build evidence.
 
 Open **http://localhost:3102**. Sign in as `analyst` or `supervisor`, password `demo-pass`. These are explicitly public local simulator accounts. PostgreSQL persists data in a Docker volume; application and API share one browser origin. API documentation is at `/api/docs` (proxied OpenAPI UI).
 
 DEMO replaces only model decisions with labelled scenario fixtures. Tool calls, authorization, proposals, exact-version approvals, checkpoints, audit events and simulator resolutions execute for real. LIVE never falls back to DEMO.
 
-![Actual Caseflow browser screenshot](docs/screenshots/caseflow.png)
+![Actual Caseflow browser screenshot](docs/screenshots/audit-caseflow-resolved.png)
 
 ## Two-minute demonstration
 
@@ -34,9 +34,13 @@ To repeat the walkthrough intentionally, run `PYTHONPATH=services/api uv run pyt
 
 Editing a proposal invalidates approval. Reimbursements cannot exceed the disputed amount. Row locks and a unique resolution constraint prevent concurrent retries from duplicating the action. These controls establish authorization properties, **not model immunity to prompt injection**.
 
+## Audit and reproducibility
+
+[The technical audit](docs/audit.md) records the initial commit, defects, transaction/lease corrections, exact commands, fresh Compose project, provider contracts and limits. Do not infer model quality from software test counts. The isolated audit uses ports 3202/8202/5642 and a new volume, preserving the ordinary demo.
+
 ## Developer commands
 
-Requires Python 3.12, uv, Node 22+ and Docker. Exact direct pins and transitive lockfiles are committed.
+Validated with Python 3.12, uv 0.13.4, Node 24.22.1 and Docker Compose 2.40.3. The audit override uses Compose 2.24.4+ port replacement. Exact direct pins and transitive lockfiles are committed.
 
 ```sh
 docker compose up -d db
@@ -58,7 +62,7 @@ Host development: `PYTHONPATH=services/api uv run uvicorn caseflow.main:app --po
 
 ## LIVE
 
-See [exact activation and verification](docs/live.md). OpenAI and Gemini official SDK adapters validate structured output, bound concurrent requests, set timeouts and retry at most twice. They are tested through mocked HTTP transports. **No external model call has been verified in this delivery.** The model proposes a typed decision; server-side tools authorize actual effects. The simulator remains synthetic even in LIVE.
+See [exact activation and verification](docs/live.md). OpenAI and Gemini official SDK adapters validate structured output, bound concurrent requests, set timeouts and apply bounded retries. Terminal truncation, refusal and safety blocks are rejected even if their text looks like valid JSON. They are tested through mocked HTTP transports. **No external model call has been verified in this delivery.** The model proposes a typed decision; server-side tools authorize actual effects. The simulator remains synthetic even in LIVE.
 
 ## Engineering review
 
