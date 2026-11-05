@@ -1,3 +1,14 @@
+# Testing Caseflow
+
+Start with the [README's five simple backend checks](../README.md#run-simple-tests), then the [complete validation commands](../README.md#full-validation). Both use locked dependencies and require no model credentials. The health endpoint is a read-only installation check; the backend workflow test additionally runs the real MCP client/server and persists the approval/resolution flow.
+
+The current audit verified **71 backend tests passed / 1 opt-in LIVE test skipped**, **3 frontend unit tests**, **7 browser tests**, lint/types/builds and a final uncached Docker rebuild. See [audit.md](audit.md#final-candidate-verification) for evidence and limitations. Contract fixtures are not authenticated provider verification.
+
+Backend tests use a disposable PostgreSQL database ending in `_test`, default `caseflow_test` at port 5542. Never point `TEST_DATABASE_URL` at your demonstration or other retained data. Browser tests use the running web origin and intentionally mutate the five initial synthetic cases; for a separate installation use the audit Compose override/project. `WEB_BASE_URL` overrides the web origin, and `CHROMIUM_PATH` selects an installed browser. Otherwise install Chromium with `npx playwright install --with-deps chromium` from `apps/web`.
+
+<details>
+<summary>Historical implementation record — superseded by the completed technical audit</summary>
+
 # Initial implementation verification (superseded by the audit)
 
 Current release-candidate evidence and corrected behavior are in [audit.md](audit.md). The following record is retained as historical context, not a current approval.
@@ -39,3 +50,5 @@ https://auth.docker.io/token?scope=repository%3Adocker%2Fdockerfile%3Apull&servi
 ```
 
 Therefore **the final all-container images and Compose application boot remain unverified**. The successful final local launcher and host browser tests do not establish that container boot passed. The final Compose files parse correctly, PostgreSQL runs with its healthcheck, and the local application remains available at port 3102. Re-run `docker compose up --build -d --wait` once registry connectivity is restored, or use `docker compose -f compose.yaml -f compose.cloud.yaml up --build -d --wait` in the managed proxy workspace. No network controls were bypassed.
+
+</details>

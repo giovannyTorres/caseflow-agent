@@ -18,3 +18,10 @@
 ## Technical audit update — 2026-11-05
 
 The previous build record above is historical. The audit began from clean commit7207707 and preserved existing data/history. It corrected lease/cancellation/checkpoint integrity, resolution enqueue semantics, terminal provider validation and resource cleanup, bounded request handling, LIVE/configuration UI state and keyboard focus. It reproduced a clean `--pull --no-cache` build and four healthy services on a new audit Compose project; a real API/worker restart retained the interruption checkpoint and led to exactly one resolution. The final snapshot, including query-log redaction and UI corrections, also completed an uncached rebuild; 71 backend tests passed with 1 LIVE skip, 3 frontend unit tests and all 7 browser tests passed. A second actual container restart again preserved the session/checkpoint and produced exactly one resolution. [audit.md](audit.md) contains exact commands, findings, source references and current evidence; no LIVE service verification or external publication is claimed.
+
+
+## Publication documentation update — 2026-11-05
+
+Added a newcomer path in README/Spanish guide: prerequisites, repository clone, healthy Docker startup, public DEMO login, read-only health check, retained-volume shutdown/restart, a five-test backend selection and frontend unit checks. Existing meaningful tests are reused; no runtime behavior or dependency changed. Kept detailed audit evidence and clearly separated the old implementation record from current testing instructions. LIVE remains opt-in and unverified against external services.
+
+Validation for that documentation update: the read-only health command returned DEMO/ok; the exact backend selection passed 5 tests against a newly created `caseflow_readme_test` database; frontend unit checks passed 3 tests. The explicit reset script's stdin invocation was checked only against that disposable test database. Markdown file links and `git diff --check` passed. No application source or image changed, so the completed audit build was not repeated.

@@ -13,7 +13,7 @@ No keys are needed for DEMO. No paid calls were made during development. Running
    docker compose exec api .venv/bin/python -m caseflow.admin supervisor --role supervisor
    ```
 5. Sign in and investigate a LIVE synthetic case. Check the model decision, real tool results and exact-version approval. The model may request evidence instead of proposing reimbursement.
-6. Execute the explicit provider smoke test with a local test PostgreSQL database and the intended provider key injected through the shell/secret manager, not committed in a file:
+6. Prepare the host Python/uv tools and isolated test database from [the README](../README.md#run-simple-tests). Execute the explicit provider smoke test with the intended provider key injected through the shell/secret manager, not committed in a file. The `.env` above configures Docker Compose; `uv run pytest` does **not** automatically load it into the host process:
    ```sh
    RUN_LIVE=1 MODEL_PROVIDER=openai MODEL_NAME=gpt-4.1-mini uv run pytest tests/test_providers.py::test_live_provider_smoke -q
    # Or MODEL_PROVIDER=gemini MODEL_NAME=gemini-2.5-flash with GEMINI_API_KEY configured.
@@ -30,3 +30,5 @@ The contracts have been verified with HTTP transport fixtures. Real service acce
 See [audit](audit.md). Both official SDKs now require an unblocked terminal success before accepting a strictly typed decision. OpenAI `length`, `content_filter`, refusals and unexpected tool calls fail closed; Gemini MAX_TOKENS, prompt/candidate safety blocks and nontext/tool output fail closed. Schema validation alone is insufficient. Queue wait is inside the timeout, retries remain bounded, and clients close on success, errors and cancellation. Externally visible errors are sanitized. Selecting Gemini directly without MODEL_NAME chooses its documented Gemini default; Compose/.env may explicitly set a model, and mismatched provider/model configuration is reported rather than silently substituted.
 
 The model returns a structured decision; graph nodes select MCP tools under server control. Native SDK function calling and token streaming are not claimed. LIVE continues to operate a synthetic simulator, and real provider acceptance/model quality remains unverified without explicitly authorized smoke calls.
+
+The convenience `demo-local.sh` launcher always forces DEMO. Use the Compose procedure above to activate LIVE.
