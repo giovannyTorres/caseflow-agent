@@ -2,7 +2,7 @@
 
 ## Baseline and scope
 
-Initial branch `main`, commit `7207707`; working tree was clean. No applicable AGENTS.md existed in this repository at inspection. Existing volumes, case history, commits and the original local demo were preserved. The independent audit uses Compose project **audit-caseflow**, named volume `audit-caseflow_caseflow-db`, web `3202`, API `8202`, PostgreSQL `5642`. Destructive tests are restricted to the separately created `audit_caseflow_test` database; the fixture rejects database names not ending `_test`.
+Initial branch `main`, commit `399befb`; working tree was clean. No applicable AGENTS.md existed in this repository at inspection. Existing volumes, case history, commits and the original local demo were preserved. The independent audit uses Compose project **audit-caseflow**, named volume `audit-caseflow_caseflow-db`, web `3202`, API `8202`, PostgreSQL `5642`. Destructive tests are restricted to the separately created `audit_caseflow_test` database; the fixture rejects database names not ending `_test`.
 
 The audit inspected HTTP endpoints and domain transactions, MCP stdio client/server, LangGraph persistence and leases, official SDK request/response contracts, browser state/authorization handling, Dockerfiles, local launch scripts and documentation. No provider key, paid model invocation, remote Git publication or Azure deployment was used.
 

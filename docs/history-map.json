@@ -1,0 +1,11 @@
+{
+  "purpose": "Publication uses GitHub noreply author/committer addresses. Commit contents, topology and timestamps are retained; documentation references are updated in the following commit.",
+  "original_history": "Retained locally in refs/private/pre-publication-main and .git/pre-publication-history.bundle; neither is published.",
+  "original_to_public_commits": {
+    "720770746a31460d826d35e3e26c7e17ff5be35f": "399befb3fe28525a8511e04077a6152cbb6acb3b",
+    "8193d433b8606c4ae627d6c95e1c17db61e69197": "41d24ded42f866e0199391cc6ff3ee56755b077f",
+    "3e66a28b17b061cf472fd10cb27f6657e1f3d09a": "257e809ed3f83ab798ac62be44f7cf1020f7700b",
+    "1406f2d353f97827a4167defbb72ac1694cdcdcf": "1406f2d353f97827a4167defbb72ac1694cdcdcf",
+    "a688cc3ff236d8886547309881dab68bb69f6077": "da0f0ed3f8115ff959a757966432fc3459facfdd"
+  }
+}
