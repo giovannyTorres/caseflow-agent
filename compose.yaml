@@ -1,0 +1,64 @@
+name: caseflow-agent
+services:
+  db:
+    image: postgres:17.6-bookworm
+    environment:
+      POSTGRES_DB: caseflow
+      POSTGRES_USER: caseflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseflow-demo}
+    ports: ["127.0.0.1:5542:5432"]
+    volumes: ["caseflow-db:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caseflow -d caseflow"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  api:
+    build: .
+    environment: &backend
+      DATABASE_URL: postgresql://caseflow:${POSTGRES_PASSWORD:-caseflow-demo}@db:5432/caseflow
+      APP_MODE: ${APP_MODE:-DEMO}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3102}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      MODEL_PROVIDER: ${MODEL_PROVIDER:-openai}
+      MODEL_NAME: ${MODEL_NAME:-gpt-4.1-mini}
+      MODEL_TIMEOUT_SECONDS: ${MODEL_TIMEOUT_SECONDS:-30}
+      MODEL_MAX_TOKENS: ${MODEL_MAX_TOKENS:-1200}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", ".venv/bin/python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8102/api/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  worker:
+    build: .
+    command: [".venv/bin/python", "-m", "caseflow.worker"]
+    environment: *backend
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", ".venv/bin/python", "-c", "import psycopg,os;psycopg.connect(os.environ['DATABASE_URL']).execute('SELECT 1')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      API_INTERNAL_URL: http://api:8102
+      PORT: 3102
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      api: {condition: service_healthy}
+    ports: ["127.0.0.1:3102:3102"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3102').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  caseflow-db:

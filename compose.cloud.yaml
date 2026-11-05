@@ -1,0 +1,20 @@
+# Optional managed-workspace CA trust; no credentials are included.
+services:
+  api:
+    build:
+      secrets: [proxy_ca]
+    environment:
+      SSL_CERT_FILE: /run/caseflow-ca.pem
+    volumes: ["${CASEFLOW_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}:/run/caseflow-ca.pem:ro"]
+  worker:
+    build:
+      secrets: [proxy_ca]
+    environment:
+      SSL_CERT_FILE: /run/caseflow-ca.pem
+    volumes: ["${CASEFLOW_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}:/run/caseflow-ca.pem:ro"]
+  web:
+    build:
+      secrets: [proxy_ca]
+secrets:
+  proxy_ca:
+    file: ${CASEFLOW_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}

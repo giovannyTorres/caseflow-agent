@@ -1,0 +1,119 @@
+{
+  "verification": "Actual API and worker processes stopped and restarted after a durable LangGraph interrupt, then resumed, approved and resolved. Synthetic DEMO data only.",
+  "case": {
+    "id": "demo-restart-check",
+    "status": "resolved",
+    "proposal_version": 1
+  },
+  "events": [
+    {
+      "actor": "analyst",
+      "event": "job_queued",
+      "detail": {
+        "id": "18d8b7d3-cc78-4c6a-b84d-fc9e64809820",
+        "action": "investigate"
+      },
+      "correlation_id": "f47ab069-c9c1-4dbc-8666-19857726d0ac",
+      "created_at": "2026-11-05 00:22:05.034498+00:00"
+    },
+    {
+      "actor": "analyst",
+      "event": "evidence_gathered",
+      "detail": {
+        "policy": "juniper-policy-v1",
+        "movement_count": 2
+      },
+      "correlation_id": "f47ab069-c9c1-4dbc-8666-19857726d0ac",
+      "created_at": "2026-11-05 00:22:06.574274+00:00"
+    },
+    {
+      "actor": "analyst",
+      "event": "job_waiting",
+      "detail": {
+        "job_id": "18d8b7d3-cc78-4c6a-b84d-fc9e64809820"
+      },
+      "correlation_id": "f47ab069-c9c1-4dbc-8666-19857726d0ac",
+      "created_at": "2026-11-05 00:22:06.594083+00:00"
+    },
+    {
+      "actor": "analyst",
+      "event": "job_queued",
+      "detail": {
+        "id": "535a2b60-69d2-46b0-a256-2bba885fc5f2",
+        "action": "resume"
+      },
+      "correlation_id": "87935dfd-08ea-45d5-8a5c-df57bc96fbfd",
+      "created_at": "2026-11-05 00:23:38.762067+00:00"
+    },
+    {
+      "actor": "analyst",
+      "event": "decision_prepared",
+      "detail": {
+        "mode": "DEMO",
+        "action": "propose"
+      },
+      "correlation_id": "f47ab069-c9c1-4dbc-8666-19857726d0ac",
+      "created_at": "2026-11-05 00:23:39.026493+00:00"
+    },
+    {
+      "actor": "analyst",
+      "event": "proposal_prepared",
+      "detail": {
+        "amount": 625,
+        "reason": "Fixture: recovered checkpoint and movements confirm the duplicate charge.",
+        "status": "awaiting_approval",
+        "version": 1
+      },
+      "correlation_id": "f47ab069-c9c1-4dbc-8666-19857726d0ac",
+      "created_at": "2026-11-05 00:23:39.517741+00:00"
+    },
+    {
+      "actor": "analyst",
+      "event": "job_waiting",
+      "detail": {
+        "job_id": "535a2b60-69d2-46b0-a256-2bba885fc5f2"
+      },
+      "correlation_id": "87935dfd-08ea-45d5-8a5c-df57bc96fbfd",
+      "created_at": "2026-11-05 00:23:39.722258+00:00"
+    },
+    {
+      "actor": "supervisor",
+      "event": "proposal_approved",
+      "detail": {
+        "version": 1
+      },
+      "correlation_id": "0d91429c-50c9-4873-8603-688317be8822",
+      "created_at": "2026-11-05 00:23:39.939157+00:00"
+    },
+    {
+      "actor": "supervisor",
+      "event": "job_queued",
+      "detail": {
+        "id": "03919d47-b1f5-4d5b-b019-270633fd1057",
+        "action": "resolve"
+      },
+      "correlation_id": "977b2e62-72c3-427f-8512-8b3f5f62a853",
+      "created_at": "2026-11-05 00:23:39.962763+00:00"
+    },
+    {
+      "actor": "supervisor",
+      "event": "resolution_registered",
+      "detail": {
+        "id": "6f96233b-f39b-4fe9-9a8c-46bb879ed080",
+        "amount": 625,
+        "version": 1
+      },
+      "correlation_id": "f47ab069-c9c1-4dbc-8666-19857726d0ac",
+      "created_at": "2026-11-05 00:23:40.699531+00:00"
+    },
+    {
+      "actor": "supervisor",
+      "event": "job_completed",
+      "detail": {
+        "job_id": "03919d47-b1f5-4d5b-b019-270633fd1057"
+      },
+      "correlation_id": "977b2e62-72c3-427f-8512-8b3f5f62a853",
+      "created_at": "2026-11-05 00:23:40.800357+00:00"
+    }
+  ]
+}

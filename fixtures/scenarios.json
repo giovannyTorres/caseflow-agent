@@ -1,0 +1,7 @@
+[
+ {"scenario":"duplicate","title":"Two charges, one purchase","priority":"high","amount":1280,"decision":{"action":"propose","amount":1280,"reason":"Fixture: two settled charges refer to the same synthetic purchase."}},
+ {"scenario":"insufficient","title":"Missing delivery evidence","priority":"medium","amount":490,"decision":{"action":"request_evidence","amount":0,"reason":"Fixture: obtain the synthetic delivery receipt before proposing any resolution."}},
+ {"scenario":"rejection","title":"Purchase confirmed by customer","priority":"low","amount":760,"decision":{"action":"reject","amount":0,"reason":"Fixture: synthetic customer evidence confirms a legitimate purchase."}},
+ {"scenario":"tool_failure","title":"Merchant feed unavailable","priority":"high","amount":950,"decision":{"action":"propose","amount":950,"reason":"Fixture: restored movements confirm a duplicate synthetic purchase."}},
+ {"scenario":"interruption","title":"Interrupted investigation","priority":"medium","amount":625,"decision":{"action":"propose","amount":625,"reason":"Fixture: recovered checkpoint and movements confirm the duplicate charge."}}
+]

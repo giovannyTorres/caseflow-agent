@@ -1,0 +1,15 @@
+# Trust, operation and secrets
+
+The trusted boundary includes the operator, database, backend executable, worker and its child MCP process. Models, case content and tool-returned text are untrusted. A model can only return a schema-validated decision. Backend guards limit the proposal amount, require supervisor approval of the current version and authorize the final action independently. Domain guards and database constraints apply even to direct API or MCP calls.
+
+DEMO credentials are public fixtures suitable only for local review. LIVE has separate manually provisioned accounts. Passwords use salted scrypt; session cookies contain random tokens stored as SHA-256 hashes with eight-hour expiry. The demo is not a complete identity platform: production needs SSO/MFA, centralized abuse/rate controls, retention policy and security review. Never expose the local DEMO deployment publicly with its known password.
+
+Never commit `.env`, keys, cloud credentials or database backups. `.env.example` has empty provider keys. Rotate a leaked key with the provider, revoke sessions if needed (`DELETE FROM sessions` through an authorized DB console), replace secret references and recreate affected containers. Log only bounded event labels, correlation IDs and trace IDs; do not log provider input/output. Console OpenTelemetry export is opt-in using `OTEL_CONSOLE=true`; traces cover HTTP, graph runs and MCP calls. No remote telemetry export is enabled by default. Audits persist actor, event, time, correlation and safe action details in PostgreSQL.
+
+`docker compose logs api worker` inspects operational logs. `/api/health` verifies DB readiness. `docker compose restart api worker` retains all case state and checkpoints. A crash mid-job may require up to 60 seconds for lease expiry. An operator/user can cancel a running case through `POST /api/cases/{id}/cancel` (JSON body `{}`); the heartbeat cancels the in-flight task within five seconds. `resume` replays from the checkpoint. Back up PostgreSQL and verify restore before any operational use; no production backup claims are made.
+
+The initial migration is `services/api/caseflow/schema.sql`, recorded in `schema_migrations`. DDL and seed are idempotent and guarded by advisory locks. Add explicit numbered migrations rather than silently altering the initial schema for future releases. Avoid `docker compose down -v` unless intentionally deleting all local state.
+
+The networked model integration is the only inference path. No GPU, weights, local models or inference servers are used. MCP tools consult and mutate this local synthetic simulator; no real merchant/bank systems or outbound evidence requests are integrated.
+
+In a managed Codex workspace with a corporate HTTPS proxy, build and start with `docker compose -f compose.yaml -f compose.cloud.yaml up --build -d`. This optional override mounts the system CA bundle for build-time package retrieval and backend runtime TLS without disabling verification. Ordinary local Docker uses the one-command default Compose file. Session-specific certificate contents are never copied into the repository or images.

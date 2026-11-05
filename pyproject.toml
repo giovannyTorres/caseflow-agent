@@ -1,0 +1,22 @@
+[project]
+name = "caseflow-agent"
+version = "0.1.0"
+description = "Synthetic charge investigations with durable MCP agents"
+requires-python = ">=3.12"
+dependencies = [
+ "fastapi==0.128.0", "uvicorn==0.40.0", "psycopg[binary,pool]==3.3.2",
+ "langgraph==1.0.7", "langgraph-checkpoint-postgres==3.0.4", "mcp==1.26.0",
+ "openai==2.15.0", "google-genai==1.60.0", "pydantic==2.12.5", "httpx==0.28.1",
+ "opentelemetry-api==1.39.1", "opentelemetry-sdk==1.39.1", "opentelemetry-instrumentation-fastapi==0.60b1"
+]
+[dependency-groups]
+dev = ["pytest==9.0.2", "pytest-asyncio==1.3.0", "ruff==0.14.14"]
+[tool.pytest.ini_options]
+pythonpath = ["services/api"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = ["live: requires explicit RUN_LIVE=1 and a configured provider key"]
+[tool.ruff]
+line-length = 110
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
