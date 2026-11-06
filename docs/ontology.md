@@ -42,6 +42,8 @@ These controls preserve Caseflow's existing modes and analyst/supervisor roles. 
 
 ## Decision-only comparison with Release Lab
 
+The [2026-11-06 measured results](ontology-results.md) record the fixed eight-case, three-arm run, including rejected outputs and its inconclusive comparison.
+
 `scripts/semantic_benchmark_caller.py` reads one blind CallerRequest from stdin and emits one Observation JSON. It supports baseline, glossary and auto_ontology arms, uses the same `Decision` model and actual local Ollama model in every arm, and never reads goldens. Configure the model with `CASEFLOW_EVAL_MODEL` (default `qwen3.5:4b`) and loopback service with `CASEFLOW_EVAL_OLLAMA_URL` (default `http://127.0.0.1:11434`). Temperature is 0 and seed is 42 in every arm.
 
 The caller's case context is JSON containing `mode`, `case` (ID, amount, evidence), `movements` (`movements` array), and `policy` (ID/version/text). Policy evidence ID defaults to `id@version`; a supplied `source_id` is also supported. Model output wraps a `Decision` plus explicit evidence IDs, which must belong to observed movements, policy or case evidence. Definition IDs cannot substitute for purchase evidence.
