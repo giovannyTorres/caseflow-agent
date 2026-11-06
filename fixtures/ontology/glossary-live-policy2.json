@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "application": "caseflow-agent",
+  "snapshot_id": "caseflow-curated-policy2-v1",
+  "source": "glossary",
+  "source_commit": "curated-synthetic-v1",
+  "scope": {
+    "mode": "LIVE"
+  },
+  "certified": true,
+  "approved_by": "synthetic-fixture-review",
+  "policy": {
+    "id": "juniper-policy-v2",
+    "version": 2,
+    "sha256": "d6ea3e71cf5bb40cb9e80331fb7097eb1a9f5bae634b44617220c6b5011217f0"
+  },
+  "terms": [
+    {
+      "id": "cf-settled-duplicate-v1",
+      "name": "Liquidacion duplicada",
+      "description": "Dos cargos liquidados de una misma compra pueden formar un duplicado. Una autorizacion y una liquidacion no demuestran dos cobros. La evidencia de compra y los estados deben respaldar la decision.",
+      "synonyms": [
+        "cargo duplicado",
+        "duplicate settled charges"
+      ],
+      "name_certified": true,
+      "description_certified": true,
+      "sha256": "46fb0b6018388dca10909b2b75532767cea2f74224ac5f2fcf9409f61a7f858f"
+    },
+    {
+      "id": "cf-authorization-v1",
+      "name": "Autorizacion",
+      "description": "Una autorizacion es una reserva previa a la liquidacion. No debe contarse como un segundo cargo liquidado sin verificar su estado y la referencia de compra.",
+      "synonyms": [
+        "retencion",
+        "authorization",
+        "pending hold"
+      ],
+      "name_certified": true,
+      "description_certified": true,
+      "sha256": "f62296ea7bea0a90eaf8d710f0bcccab67d982d276143a873f6c82b2008e263d"
+    },
+    {
+      "id": "cf-evidence-v1",
+      "name": "Evidencia faltante",
+      "description": "Si faltan comprobantes o estados suficientes para decidir, se solicita evidencia. Una definicion de glosario no es comprobante de una compra.",
+      "synonyms": [
+        "comprobante pendiente",
+        "missing evidence"
+      ],
+      "name_certified": true,
+      "description_certified": true,
+      "sha256": "e405fd0ef109f29c7478b63bf33786a4926818c5a7d7ab51c208a71679e56744"
+    }
+  ]
+}

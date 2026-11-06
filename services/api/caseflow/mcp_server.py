@@ -6,6 +6,7 @@ from typing import Annotated
 from .config import settings
 from .execution import capability, require_execution
 from .db import connection
+from .policy import current_policy
 from .domain import (DomainError, ProposalInput, get_case, require_actor, proposal, request_evidence as domain_evidence,
                      register_resolution as domain_resolve)
 
@@ -37,7 +38,7 @@ def get_movements(case_id: str) -> dict:
 def get_policy(case_id: str) -> dict:
     """Get the original fictional reimbursement policy."""
     context(case_id)
-    return {'id': 'juniper-policy-v1', 'version': 1, 'text': 'Duplicate settled charges may be reimbursed once after supervisor approval. Missing evidence requires an evidence request. Confirmed legitimate purchases are rejected. Never exceed the disputed amount.'}
+    return current_policy()
 
 @mcp.tool()
 def request_evidence(case_id: str, reason: Annotated[str, Field(min_length=10, max_length=1000)]) -> dict:
@@ -46,11 +47,11 @@ def request_evidence(case_id: str, reason: Annotated[str, Field(min_length=10, m
     return domain_evidence(case_id, actor, reason, correlation)
 
 @mcp.tool()
-def prepare_proposal(case_id: str, amount: Annotated[int, Field(strict=True, gt=0, le=100000)], reason: Annotated[str, Field(min_length=10, max_length=1000)]) -> dict:
+def prepare_proposal(case_id: str, amount: Annotated[int, Field(strict=True, gt=0, le=100000)], reason: Annotated[str, Field(min_length=10, max_length=1000)], context_binding: dict | None = None) -> dict:
     """Prepare a versioned proposal and invalidate any previous approval."""
     actor, correlation = context(case_id)
     return proposal(case_id, actor, ProposalInput(amount=amount, reason=reason), correlation,
-                    operation_key='graph-initial-proposal')
+                    operation_key='graph-initial-proposal', context_binding=context_binding)
 
 @mcp.tool()
 def register_resolution(case_id: str, version: Annotated[int, Field(strict=True, gt=0)]) -> dict:

@@ -5,6 +5,8 @@ from psycopg.types.json import Jsonb
 from .config import settings
 from .db import connection, event, serial
 from .execution import require_execution
+from .ontology import (OntologyError, bind_context, digest, validate_binding, verify_application_review)
+from .policy import current_policy
 
 class DomainError(Exception):
     def __init__(self, message, status=409):
@@ -43,11 +45,14 @@ def require_actor(conn, actor, roles=('analyst', 'supervisor')):
     return row
 
 
-def proposal(case_id, actor, data: ProposalInput, correlation, operation_key=None, edit_existing=False):
+def proposal(case_id, actor, data: ProposalInput, correlation, operation_key=None, edit_existing=False,
+             context_binding=None, expected_version=None):
     with connection() as conn:
         require_actor(conn, actor)
         case = get_case(conn, case_id, True)
         require_execution(conn, case_id)
+        if expected_version is not None and expected_version != case['proposal_version']:
+            raise DomainError('Context refresh must match the current proposal version')
         if edit_existing and (not case['proposal_version'] or case['status'] not in {'awaiting_approval', 'approved'}):
             raise DomainError('Only an existing reviewable proposal can be edited')
         if operation_key:
@@ -58,14 +63,39 @@ def proposal(case_id, actor, data: ProposalInput, correlation, operation_key=Non
             raise DomainError('A closed case cannot be changed')
         if data.amount > case['amount']:
             raise DomainError('Proposal exceeds disputed amount', 422)
+        try:
+            if context_binding is not None:
+                context = validate_binding(context_binding, case, current_policy())
+                verify_application_review(context, settings)
+            elif edit_existing and case['proposal_context']:
+                context = stored_context(case)
+            else:
+                context = bind_context(case, current_policy())
+                verify_application_review(context, settings)
+        except OntologyError as exc:
+            raise DomainError(str(exc)) from None
+        context_data = context.model_dump()
+        context_sha256 = digest(context_data)
         version = case['proposal_version'] + 1
-        conn.execute("UPDATE cases SET proposal_version=%s,proposal_amount=%s,proposal_reason=%s,approved_version=NULL,approved_by=NULL,status='awaiting_approval' WHERE id=%s",
-                     (version, data.amount, data.reason, case_id))
+        conn.execute("""UPDATE cases SET proposal_version=%s,proposal_amount=%s,proposal_reason=%s,
+          proposal_context=%s,proposal_context_sha256=%s,approved_context_sha256=NULL,
+          approved_version=NULL,approved_by=NULL,status='awaiting_approval' WHERE id=%s""",
+                     (version, data.amount, data.reason, Jsonb(context_data), context_sha256, case_id))
         result = {'version': version, 'amount': data.amount, 'reason': data.reason, 'status': 'awaiting_approval'}
         if operation_key:
             conn.execute('INSERT INTO tool_receipts VALUES(%s,%s,%s)', (case_id, operation_key, Jsonb(result)))
-        event(conn, case_id, actor, 'proposal_prepared', result, correlation)
+        event(conn, case_id, actor, 'proposal_prepared',
+              {**result, 'context_sha256': context_sha256, 'context': context_data}, correlation)
         return result
+
+
+def stored_context(case):
+    try:
+        if not case['proposal_context'] or digest(case['proposal_context']) != case['proposal_context_sha256']:
+            raise OntologyError('Missing or changed proposal context')
+        return validate_binding(case['proposal_context'], case, current_policy())
+    except (OntologyError, ValueError, TypeError):
+        raise DomainError('Proposal evidence or policy changed. Refresh context and review a new version.') from None
 
 
 def approve(case_id, actor, version, correlation):
@@ -75,8 +105,11 @@ def approve(case_id, actor, version, correlation):
         require_execution(conn, case_id)
         if case['status'] not in {'awaiting_approval', 'approved'} or version != case['proposal_version']:
             raise DomainError('Approval must match the current proposal version')
-        conn.execute("UPDATE cases SET status='approved',approved_version=%s,approved_by=%s WHERE id=%s", (version, actor, case_id))
-        event(conn, case_id, actor, 'proposal_approved', {'version': version}, correlation)
+        stored_context(case)
+        conn.execute("UPDATE cases SET status='approved',approved_version=%s,approved_by=%s,approved_context_sha256=%s WHERE id=%s",
+                     (version, actor, case['proposal_context_sha256'], case_id))
+        event(conn, case_id, actor, 'proposal_approved',
+              {'version': version, 'context_sha256': case['proposal_context_sha256']}, correlation)
         return {'status': 'approved', 'version': version}
 
 
@@ -92,11 +125,16 @@ def register_resolution(case_id, actor, version, correlation):
             return serial(existing)
         if case['status'] != 'approved' or case['approved_version'] != version or case['proposal_version'] != version:
             raise DomainError('An exact, current approval is required before resolution')
+        stored_context(case)
+        if case['approved_context_sha256'] != case['proposal_context_sha256']:
+            raise DomainError('Approval belongs to another evidence context')
         ident = str(uuid.uuid4())
         conn.execute('INSERT INTO resolutions(id,case_id,proposal_version,amount,actor,correlation_id) VALUES(%s,%s,%s,%s,%s,%s)',
                      (ident, case_id, version, case['proposal_amount'], actor, correlation))
         conn.execute("UPDATE cases SET status='resolved' WHERE id=%s", (case_id,))
-        event(conn, case_id, actor, 'resolution_registered', {'id': ident, 'version': version, 'amount': case['proposal_amount']}, correlation)
+        event(conn, case_id, actor, 'resolution_registered',
+              {'id': ident, 'version': version, 'amount': case['proposal_amount'],
+               'context_sha256': case['proposal_context_sha256']}, correlation)
         return {'id': ident, 'case_id': case_id, 'proposal_version': version, 'amount': case['proposal_amount']}
 
 
@@ -112,7 +150,7 @@ def request_evidence(case_id, actor, reason, correlation):
         if not any(x['id'] == item['id'] for x in evidence):
             evidence.append(item)
             event(conn, case_id, actor, 'evidence_requested', item, correlation)
-        conn.execute("UPDATE cases SET evidence=%s,status='needs_evidence',approved_version=NULL,approved_by=NULL WHERE id=%s", (Jsonb(evidence), case_id))
+        conn.execute("UPDATE cases SET evidence=%s,status='needs_evidence',approved_version=NULL,approved_by=NULL,approved_context_sha256=NULL WHERE id=%s", (Jsonb(evidence), case_id))
         return item
 
 
@@ -123,6 +161,6 @@ def reject(case_id, actor, version, correlation):
         require_execution(conn, case_id)
         if case['status'] not in {'awaiting_approval', 'approved', 'needs_evidence'} or version != case['proposal_version']:
             raise DomainError('Only the current open proposal can be rejected')
-        conn.execute("UPDATE cases SET status='rejected',approved_version=NULL,approved_by=NULL WHERE id=%s", (case_id,))
+        conn.execute("UPDATE cases SET status='rejected',approved_version=NULL,approved_by=NULL,approved_context_sha256=NULL WHERE id=%s", (case_id,))
         event(conn, case_id, actor, 'proposal_rejected', {'version': version}, correlation)
         return {'status': 'rejected'}

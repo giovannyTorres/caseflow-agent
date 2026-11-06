@@ -26,6 +26,12 @@ export interface Proposal {
   amount: number;
   reason: string;
   status: string;
+  context?: {
+    policy: { id: string; version: number; text: string };
+    strategy: string;
+    snapshot_id?: string | null;
+    terms: { id: string; name: string; description: string }[];
+  } | null;
 }
 export interface Event {
   id: string;

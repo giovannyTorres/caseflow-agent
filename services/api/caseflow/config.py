@@ -13,12 +13,21 @@ class Settings:
     execution_timeout: float = float(os.getenv('EXECUTION_TIMEOUT_SECONDS', '180'))
     cookie_secure: bool = os.getenv('COOKIE_SECURE', 'false') == 'true'
     allowed_origin: str = os.getenv('APP_ORIGIN', 'http://localhost:3102')
+    ontology_mode: str = os.getenv('ONTOLOGY_MODE', 'off')
+    ontology_snapshot_path: str = os.getenv('ONTOLOGY_SNAPSHOT_PATH', '')
+    ontology_snapshot_sha256: str = os.getenv('ONTOLOGY_SNAPSHOT_SHA256', '')
+    ontology_required: bool = os.getenv('ONTOLOGY_REQUIRED', 'false') == 'true'
+    ontology_timeout: float = float(os.getenv('ONTOLOGY_TIMEOUT_SECONDS', '5'))
+    auto_ontology_url: str = os.getenv('AUTO_ONTOLOGY_URL', '')
+    auto_ontology_api_token: str = os.getenv('AUTO_ONTOLOGY_API_TOKEN', '')
 
 settings = Settings()
 if not 1 <= settings.timeout <= 120 or not 1 <= settings.max_tokens <= 8192 or not 10 <= settings.execution_timeout <= 900:
     raise ValueError('Timeout/token/execution limits are outside supported bounds')
 if settings.mode not in {'DEMO', 'LIVE'}:
     raise ValueError('APP_MODE must be DEMO or LIVE')
+if settings.ontology_mode not in {'off', 'glossary', 'auto_ontology'} or not .01 <= settings.ontology_timeout <= 30:
+    raise ValueError('Ontology strategy or total timeout is outside supported bounds')
 
 def live_missing():
     if settings.provider not in {'openai', 'gemini'}:

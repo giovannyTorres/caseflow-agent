@@ -26,6 +26,7 @@ with connection() as conn:
         if conn.execute('SELECT to_regclass(%s) AS name', (table,)).fetchone()['name']:
             conn.execute(f'DELETE FROM {table} WHERE thread_id=ANY(%s)', ([f'DEMO:{ident}' for ident in ids],))
     conn.execute("""UPDATE cases SET status='new',evidence='[]',proposal_version=0,proposal_amount=NULL,
-      proposal_reason=NULL,approved_version=NULL,approved_by=NULL,rejection_reason=NULL,recovery_enabled=false
+      proposal_reason=NULL,proposal_context=NULL,proposal_context_sha256=NULL,approved_context_sha256=NULL,
+      approved_version=NULL,approved_by=NULL,rejection_reason=NULL,recovery_enabled=false
       WHERE id=ANY(%s) AND mode='DEMO'""", (ids,))
 print('Reset the five shipped synthetic DEMO cases and their checkpoints. LIVE and other cases were untouched.')

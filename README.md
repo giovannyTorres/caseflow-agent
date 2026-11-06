@@ -124,6 +124,7 @@ Keep `APP_MODE=DEMO` while no API keys are available. All tests above run withou
 
 ## Engineering review
 
+- [Optional reviewed glossary / NVIDIA Auto Ontology](docs/ontology.md) — off by default, read-only definitions, exact context approval and decision-only comparison caller.
 - [Architecture and decisions](docs/architecture.md)
 - [Security and operating model](docs/operations.md)
 - [Testing evidence and limits](docs/testing.md)
