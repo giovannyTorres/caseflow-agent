@@ -1,0 +1,122 @@
+{
+  "dataset": "bench-cases.json",
+  "arms": [
+    {
+      "name": "baseline",
+      "execution": "live",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "scripts/semantic_benchmark_caller.py"
+      ],
+      "cwd": "../..",
+      "timeout_seconds": 240,
+      "options": {},
+      "provenance": {
+        "scope": "decision_only",
+        "ontology_generation": "curated_terms"
+      }
+    },
+    {
+      "name": "glossary",
+      "execution": "live",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "scripts/semantic_benchmark_caller.py"
+      ],
+      "cwd": "../..",
+      "timeout_seconds": 240,
+      "options": {
+        "snapshot": {
+          "path": "fixtures/ontology/glossary-live.json",
+          "sha256": "9a0e92f51aaa6c96e44377a185de9fb56154e334828a3039d954da974e76b898"
+        },
+        "snapshots": {
+          "cf-policy2-cap": {
+            "path": "fixtures/ontology/glossary-live-policy2.json",
+            "sha256": "0a1edc03e25b27273b01a86769c19d54301e4b094b6256ee6494ead8cbaa5f26"
+          },
+          "cf-policy2-pending": {
+            "path": "fixtures/ontology/glossary-live-policy2.json",
+            "sha256": "0a1edc03e25b27273b01a86769c19d54301e4b094b6256ee6494ead8cbaa5f26"
+          }
+        },
+        "ontology_timeout_seconds": 20
+      },
+      "provenance": {
+        "scope": "decision_only",
+        "ontology_generation": "curated_terms"
+      }
+    },
+    {
+      "name": "auto_ontology",
+      "execution": "live",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "scripts/semantic_benchmark_caller.py"
+      ],
+      "cwd": "../..",
+      "timeout_seconds": 240,
+      "options": {
+        "snapshot": {
+          "path": "fixtures/ontology/auto-ontology-live.json",
+          "sha256": "e852b8a592345d928258c4f040dd80575192400df6b814d4e57b2c8283047eff"
+        },
+        "snapshots": {
+          "cf-policy2-cap": {
+            "path": "fixtures/ontology/auto-ontology-live-policy2.json",
+            "sha256": "54271b7abbb6da89e9da8237e5f1a23e2b1731d7f10d3663f3ed9fa7191bc6a1"
+          },
+          "cf-policy2-pending": {
+            "path": "fixtures/ontology/auto-ontology-live-policy2.json",
+            "sha256": "54271b7abbb6da89e9da8237e5f1a23e2b1731d7f10d3663f3ed9fa7191bc6a1"
+          }
+        },
+        "ontology_timeout_seconds": 20
+      },
+      "provenance": {
+        "scope": "decision_only",
+        "ontology_generation": "curated_terms"
+      }
+    }
+  ],
+  "strata": {
+    "cf-duplicate": "duplicate",
+    "cf-hold": "hold_vs_settlement",
+    "cf-missing": "missing_evidence",
+    "cf-legitimate": "legitimate",
+    "cf-empty": "missing_evidence",
+    "cf-distinct": "legitimate",
+    "cf-policy2-cap": "policy_version",
+    "cf-policy2-pending": "policy_version"
+  },
+  "snapshots": {
+    "glossary": {
+      "path": "glossary-live.json",
+      "sha256": "9a0e92f51aaa6c96e44377a185de9fb56154e334828a3039d954da974e76b898"
+    },
+    "glossary-policy2": {
+      "path": "glossary-live-policy2.json",
+      "sha256": "0a1edc03e25b27273b01a86769c19d54301e4b094b6256ee6494ead8cbaa5f26"
+    },
+    "auto_ontology": {
+      "path": "auto-ontology-live.json",
+      "sha256": "e852b8a592345d928258c4f040dd80575192400df6b814d4e57b2c8283047eff"
+    },
+    "auto_ontology-policy2": {
+      "path": "auto-ontology-live-policy2.json",
+      "sha256": "54271b7abbb6da89e9da8237e5f1a23e2b1731d7f10d3663f3ed9fa7191bc6a1"
+    }
+  },
+  "threshold": 1.0,
+  "provenance": {
+    "scope": "decision_only",
+    "ontology_generation": "curated_terms",
+    "dataset_scope": "8 original synthetic cases; not representative production data"
+  }
+}

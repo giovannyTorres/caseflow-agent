@@ -14,7 +14,9 @@ async def call_tool(name, arguments, *, case_id, actor, correlation):
     if name not in ALLOWED or arguments.get('case_id') != case_id:
         raise ValueError('Tool capability denied')
     # Credentials and network proxy variables are not required by this DB-only server.
-    env = {k: v for k, v in os.environ.items() if k in {'PATH', 'PYTHONPATH', 'DATABASE_URL', 'APP_MODE', 'SYSTEMROOT'}}
+    env = {k: v for k, v in os.environ.items() if k in {
+        'PATH', 'PYTHONPATH', 'DATABASE_URL', 'APP_MODE', 'SYSTEMROOT',
+        'ONTOLOGY_MODE', 'ONTOLOGY_SNAPSHOT_PATH', 'ONTOLOGY_SNAPSHOT_SHA256', 'ONTOLOGY_REQUIRED'}}
     env['PYTHONPATH'] = str(Path(__file__).resolve().parents[1])
     env.update(MCP_ACTOR=actor, MCP_CASE_ID=case_id, MCP_CORRELATION_ID=correlation)
     current = capability.get()

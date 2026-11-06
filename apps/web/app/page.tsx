@@ -1134,6 +1134,21 @@ export default function Home() {
                                   )}
                                 </div>
                                 <p>{detail.proposal.reason}</p>
+                                {detail.proposal.context && (
+                                  <details>
+                                    <summary>Evidence used for this proposal</summary>
+                                    <p>Policy {detail.proposal.context.policy.id}, version {detail.proposal.context.policy.version}</p>
+                                    <p>{detail.proposal.context.policy.text}</p>
+                                    {detail.proposal.context.terms.length > 0 && (
+                                      <ul>
+                                        {detail.proposal.context.terms.map((term) => (
+                                          <li key={term.id}><strong>{term.name}</strong>: {term.description}</li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                    <p>Approval covers the case evidence and policy captured for this proposal version. Definitions explain terms; they are not purchase evidence.</p>
+                                  </details>
+                                )}
                                 {!["resolved", "rejected"].includes(detail.status) && (
                                   <>
                                     <button

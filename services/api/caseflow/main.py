@@ -18,6 +18,8 @@ from .domain import DomainError, ProposalInput, approve, reject, proposal, get_c
 from .jobs import enqueue
 from .worker import recoverable_state
 from .telemetry import setup, sanitize_http_span
+from .ontology import OntologyError, resolve_context
+from .policy import current_policy
 
 @asynccontextmanager
 async def lifespan(app):
@@ -146,7 +148,10 @@ def cases(actor=Depends(user)):
 def detail(case_id: str, actor=Depends(user)):
     with connection() as conn:
         case = get_case(conn, case_id)
-        case['proposal'] = None if not case['proposal_version'] else {'version': case['proposal_version'], 'amount': case['proposal_amount'], 'reason': case['proposal_reason'], 'status': case['status']}
+        case['proposal'] = None if not case['proposal_version'] else {
+            'version': case['proposal_version'], 'amount': case['proposal_amount'],
+            'reason': case['proposal_reason'], 'status': case['status'],
+            'context': case['proposal_context'], 'context_sha256': case['proposal_context_sha256']}
         for table in ['events', 'messages']:
             case[table] = conn.execute(f'SELECT * FROM {table} WHERE case_id=%s ORDER BY id', (case_id,)).fetchall()
         case['job'] = conn.execute('SELECT id,status,attempts,error,created_at,updated_at FROM jobs WHERE case_id=%s ORDER BY created_at DESC LIMIT 1', (case_id,)).fetchone()
@@ -176,6 +181,22 @@ def resolve_case(case_id: str, data: Version, request: Request, actor=Depends(us
 @app.post('/api/cases/{case_id}/proposal')
 def edit_proposal(case_id: str, data: ProposalInput, request: Request, actor=Depends(user)):
     return proposal(case_id, actor['username'], data, request.state.correlation, edit_existing=True)
+
+
+@app.post('/api/cases/{case_id}/context/refresh')
+async def refresh_context(case_id: str, data: Version, request: Request, actor=Depends(user)):
+    with connection() as conn:
+        case = get_case(conn, case_id)
+    if not case['proposal_version'] or case['status'] not in {'awaiting_approval', 'approved'}:
+        raise DomainError('Only a reviewable proposal context can be refreshed')
+    try:
+        context, _ = await resolve_context(case, current_policy(), settings, strict=True)
+    except OntologyError as exc:
+        raise DomainError(str(exc), 503) from None
+    return proposal(case_id, actor['username'],
+                    ProposalInput(amount=case['proposal_amount'], reason=case['proposal_reason']),
+                    request.state.correlation, edit_existing=True, context_binding=context.model_dump(),
+                    expected_version=data.version)
 
 
 @app.post('/api/cases/{case_id}/cancel')

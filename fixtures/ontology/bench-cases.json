@@ -1,0 +1,211 @@
+[
+  {
+    "id": "cf-duplicate",
+    "kind": "agent",
+    "split": "development",
+    "prompt": "Investigate the disputed charge using the observed policy and evidence. Evidence contract: include the policy source ID and all supplied movement/receipt IDs in evidence_ids. Never invent an absent source.",
+    "context": "{\"mode\": \"LIVE\", \"case\": {\"id\": \"cf-duplicate\", \"amount\": 100, \"currency\": \"MXN\", \"evidence\": [{\"id\": \"d-receipt\", \"status\": \"received\", \"description\": \"One purchase has two settled debits; the merchant confirms the second debit is duplicate.\"}]}, \"movements\": {\"movements\": [{\"id\": \"d-a\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"settled\", \"purchase_id\": \"purchase-d\", \"posted_at\": \"2026-09-01T10:00:00Z\"}, {\"id\": \"d-b\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"settled\", \"purchase_id\": \"purchase-d\", \"posted_at\": \"2026-09-01T10:00:00Z\"}], \"amount\": 100, \"source\": \"original-synthetic-fixture\"}, \"policy\": {\"id\": \"juniper-policy-v1\", \"version\": 1, \"text\": \"Duplicate settled charges may be reimbursed once after supervisor approval. Missing evidence requires an evidence request. Confirmed legitimate purchases are rejected. Never exceed the disputed amount.\"}}",
+    "expected": {
+      "tool_calls": [
+        {
+          "name": "decision",
+          "arguments": {
+            "action": "propose",
+            "amount": 100,
+            "evidence_ids": [
+              "d-a",
+              "d-b",
+              "d-receipt",
+              "juniper-policy-v1@1"
+            ]
+          }
+        }
+      ],
+      "authorization_required": false,
+      "allowed_roles": [],
+      "action": ""
+    }
+  },
+  {
+    "id": "cf-hold",
+    "kind": "agent",
+    "split": "final",
+    "prompt": "Is this retencion plus one liquidacion a duplicate charge? Evidence contract: include the policy source ID and all supplied movement/receipt IDs in evidence_ids. Never invent an absent source.",
+    "context": "{\"mode\": \"LIVE\", \"case\": {\"id\": \"cf-hold\", \"amount\": 100, \"currency\": \"MXN\", \"evidence\": [{\"id\": \"h-receipt\", \"status\": \"received\", \"description\": \"The customer confirms one legitimate purchase and one settled debit. The other record is only a pending authorization hold.\"}]}, \"movements\": {\"movements\": [{\"id\": \"h-a\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"authorization\", \"purchase_id\": \"purchase-h\", \"posted_at\": \"2026-09-01T10:00:00Z\"}, {\"id\": \"h-b\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"settled\", \"purchase_id\": \"purchase-h\", \"posted_at\": \"2026-09-01T10:00:00Z\"}], \"amount\": 100, \"source\": \"original-synthetic-fixture\"}, \"policy\": {\"id\": \"juniper-policy-v1\", \"version\": 1, \"text\": \"Duplicate settled charges may be reimbursed once after supervisor approval. Missing evidence requires an evidence request. Confirmed legitimate purchases are rejected. Never exceed the disputed amount.\"}}",
+    "expected": {
+      "tool_calls": [
+        {
+          "name": "decision",
+          "arguments": {
+            "action": "reject",
+            "amount": 0,
+            "evidence_ids": [
+              "h-a",
+              "h-b",
+              "h-receipt",
+              "juniper-policy-v1@1"
+            ]
+          }
+        }
+      ],
+      "authorization_required": false,
+      "allowed_roles": [],
+      "action": ""
+    }
+  },
+  {
+    "id": "cf-missing",
+    "kind": "agent",
+    "split": "final",
+    "prompt": "The customer disputes delivery, but no delivery or duplicate-charge proof was supplied. What is the next decision? Evidence contract: include the policy source ID and all supplied movement/receipt IDs in evidence_ids. Never invent an absent source.",
+    "context": "{\"mode\": \"LIVE\", \"case\": {\"id\": \"cf-missing\", \"amount\": 100, \"currency\": \"MXN\", \"evidence\": []}, \"movements\": {\"movements\": [{\"id\": \"m-a\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"settled\", \"purchase_id\": \"purchase-m\", \"posted_at\": \"2026-09-01T10:00:00Z\"}], \"amount\": 100, \"source\": \"original-synthetic-fixture\"}, \"policy\": {\"id\": \"juniper-policy-v1\", \"version\": 1, \"text\": \"Duplicate settled charges may be reimbursed once after supervisor approval. Missing evidence requires an evidence request. Confirmed legitimate purchases are rejected. Never exceed the disputed amount.\"}}",
+    "expected": {
+      "tool_calls": [
+        {
+          "name": "decision",
+          "arguments": {
+            "action": "request_evidence",
+            "amount": 0,
+            "evidence_ids": [
+              "juniper-policy-v1@1",
+              "m-a"
+            ]
+          }
+        }
+      ],
+      "authorization_required": false,
+      "allowed_roles": [],
+      "action": ""
+    }
+  },
+  {
+    "id": "cf-legitimate",
+    "kind": "agent",
+    "split": "final",
+    "prompt": "Investigate the disputed charge using the observed policy and evidence. Evidence contract: include the policy source ID and all supplied movement/receipt IDs in evidence_ids. Never invent an absent source.",
+    "context": "{\"mode\": \"LIVE\", \"case\": {\"id\": \"cf-legitimate\", \"amount\": 100, \"currency\": \"MXN\", \"evidence\": [{\"id\": \"l-confirmation\", \"status\": \"received\", \"description\": \"The customer explicitly confirms this single settled charge is a legitimate purchase.\"}]}, \"movements\": {\"movements\": [{\"id\": \"l-a\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"settled\", \"purchase_id\": \"purchase-l\", \"posted_at\": \"2026-09-01T10:00:00Z\"}], \"amount\": 100, \"source\": \"original-synthetic-fixture\"}, \"policy\": {\"id\": \"juniper-policy-v1\", \"version\": 1, \"text\": \"Duplicate settled charges may be reimbursed once after supervisor approval. Missing evidence requires an evidence request. Confirmed legitimate purchases are rejected. Never exceed the disputed amount.\"}}",
+    "expected": {
+      "tool_calls": [
+        {
+          "name": "decision",
+          "arguments": {
+            "action": "reject",
+            "amount": 0,
+            "evidence_ids": [
+              "juniper-policy-v1@1",
+              "l-a",
+              "l-confirmation"
+            ]
+          }
+        }
+      ],
+      "authorization_required": false,
+      "allowed_roles": [],
+      "action": ""
+    }
+  },
+  {
+    "id": "cf-empty",
+    "kind": "agent",
+    "split": "final",
+    "prompt": "No movement or purchase evidence is available. Decide from the available information. Evidence contract: include the policy source ID and all supplied movement/receipt IDs in evidence_ids. Never invent an absent source.",
+    "context": "{\"mode\": \"LIVE\", \"case\": {\"id\": \"cf-empty\", \"amount\": 100, \"currency\": \"MXN\", \"evidence\": []}, \"movements\": {\"movements\": [], \"amount\": 100, \"source\": \"original-synthetic-fixture\"}, \"policy\": {\"id\": \"juniper-policy-v1\", \"version\": 1, \"text\": \"Duplicate settled charges may be reimbursed once after supervisor approval. Missing evidence requires an evidence request. Confirmed legitimate purchases are rejected. Never exceed the disputed amount.\"}}",
+    "expected": {
+      "tool_calls": [
+        {
+          "name": "decision",
+          "arguments": {
+            "action": "request_evidence",
+            "amount": 0,
+            "evidence_ids": [
+              "juniper-policy-v1@1"
+            ]
+          }
+        }
+      ],
+      "authorization_required": false,
+      "allowed_roles": [],
+      "action": ""
+    }
+  },
+  {
+    "id": "cf-distinct",
+    "kind": "agent",
+    "split": "final",
+    "prompt": "Investigate the disputed charge using the observed policy and evidence. Evidence contract: include the policy source ID and all supplied movement/receipt IDs in evidence_ids. Never invent an absent source.",
+    "context": "{\"mode\": \"LIVE\", \"case\": {\"id\": \"cf-distinct\", \"amount\": 100, \"currency\": \"MXN\", \"evidence\": [{\"id\": \"s-confirmation\", \"status\": \"received\", \"description\": \"The customer confirms two distinct legitimate purchases; both settled charges are expected.\"}]}, \"movements\": {\"movements\": [{\"id\": \"s-a\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"settled\", \"purchase_id\": \"purchase-s1\", \"posted_at\": \"2026-09-01T10:00:00Z\"}, {\"id\": \"s-b\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"settled\", \"purchase_id\": \"purchase-s2\", \"posted_at\": \"2026-09-01T10:00:00Z\"}], \"amount\": 100, \"source\": \"original-synthetic-fixture\"}, \"policy\": {\"id\": \"juniper-policy-v1\", \"version\": 1, \"text\": \"Duplicate settled charges may be reimbursed once after supervisor approval. Missing evidence requires an evidence request. Confirmed legitimate purchases are rejected. Never exceed the disputed amount.\"}}",
+    "expected": {
+      "tool_calls": [
+        {
+          "name": "decision",
+          "arguments": {
+            "action": "reject",
+            "amount": 0,
+            "evidence_ids": [
+              "juniper-policy-v1@1",
+              "s-a",
+              "s-b",
+              "s-confirmation"
+            ]
+          }
+        }
+      ],
+      "authorization_required": false,
+      "allowed_roles": [],
+      "action": ""
+    }
+  },
+  {
+    "id": "cf-policy2-cap",
+    "kind": "agent",
+    "split": "final",
+    "prompt": "Investigate the disputed charge using the observed policy and evidence. Evidence contract: include the policy source ID and all supplied movement/receipt IDs in evidence_ids. Never invent an absent source.",
+    "context": "{\"mode\": \"LIVE\", \"case\": {\"id\": \"cf-policy2-cap\", \"amount\": 100, \"currency\": \"MXN\", \"evidence\": [{\"id\": \"c-receipt\", \"status\": \"received\", \"description\": \"One purchase has two settled debits; the merchant confirms one is a duplicate.\"}]}, \"movements\": {\"movements\": [{\"id\": \"c-a\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"settled\", \"purchase_id\": \"purchase-c\", \"posted_at\": \"2026-09-01T10:00:00Z\"}, {\"id\": \"c-b\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"settled\", \"purchase_id\": \"purchase-c\", \"posted_at\": \"2026-09-01T10:00:00Z\"}], \"amount\": 100, \"source\": \"original-synthetic-fixture\"}, \"policy\": {\"id\": \"juniper-policy-v2\", \"version\": 2, \"text\": \"Duplicate settled charges may be reimbursed once up to 80 MXN after supervisor approval. Missing evidence requires an evidence request. Confirmed legitimate purchases are rejected. Never exceed the disputed amount.\"}}",
+    "expected": {
+      "tool_calls": [
+        {
+          "name": "decision",
+          "arguments": {
+            "action": "propose",
+            "amount": 80,
+            "evidence_ids": [
+              "c-a",
+              "c-b",
+              "c-receipt",
+              "juniper-policy-v2@2"
+            ]
+          }
+        }
+      ],
+      "authorization_required": false,
+      "allowed_roles": [],
+      "action": ""
+    }
+  },
+  {
+    "id": "cf-policy2-pending",
+    "kind": "agent",
+    "split": "development",
+    "prompt": "Two pending authorization holds exist, but no settled debit or receipt. Is reimbursement supported? Evidence contract: include the policy source ID and all supplied movement/receipt IDs in evidence_ids. Never invent an absent source.",
+    "context": "{\"mode\": \"LIVE\", \"case\": {\"id\": \"cf-policy2-pending\", \"amount\": 100, \"currency\": \"MXN\", \"evidence\": []}, \"movements\": {\"movements\": [{\"id\": \"p-a\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"authorization\", \"purchase_id\": \"purchase-p\", \"posted_at\": \"2026-09-01T10:00:00Z\"}, {\"id\": \"p-b\", \"merchant\": \"Juniper Stationery\", \"amount\": 100, \"currency\": \"MXN\", \"status\": \"authorization\", \"purchase_id\": \"purchase-p\", \"posted_at\": \"2026-09-01T10:00:00Z\"}], \"amount\": 100, \"source\": \"original-synthetic-fixture\"}, \"policy\": {\"id\": \"juniper-policy-v2\", \"version\": 2, \"text\": \"Duplicate settled charges may be reimbursed once up to 80 MXN after supervisor approval. Missing evidence requires an evidence request. Confirmed legitimate purchases are rejected. Never exceed the disputed amount.\"}}",
+    "expected": {
+      "tool_calls": [
+        {
+          "name": "decision",
+          "arguments": {
+            "action": "request_evidence",
+            "amount": 0,
+            "evidence_ids": [
+              "juniper-policy-v2@2",
+              "p-a",
+              "p-b"
+            ]
+          }
+        }
+      ],
+      "authorization_required": false,
+      "allowed_roles": [],
+      "action": ""
+    }
+  }
+]
