@@ -111,7 +111,8 @@ def main():
     except Exception as exc:
         result = {'status': 'error', 'execution': 'live', 'trace': [],
                   'detail': 'Decision-only caller failed: ' + type(exc).__name__}
-    print(json.dumps(result, ensure_ascii=False))
+    sys.stdout.buffer.write((json.dumps(result, ensure_ascii=False) + '\n').encode('utf-8'))
+    sys.stdout.buffer.flush()
 
 
 if __name__ == '__main__':

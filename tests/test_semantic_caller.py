@@ -4,6 +4,7 @@ from pathlib import Path
 from dataclasses import replace
 import hashlib
 import os
+import io
 
 import httpx
 import pytest
@@ -114,3 +115,23 @@ async def test_caller_rejects_model_identity_mismatch():
     with pytest.raises(ValueError, match='identity'):
         await caller.run(request(), model_transport=httpx.MockTransport(
             lambda _: httpx.Response(200, json=payload)))
+
+
+def test_main_writes_utf8_json_even_when_windows_stdout_uses_cp1252(monkeypatch):
+    observation = {'status': 'completed', 'execution': 'transport_mock', 'trace': [],
+                   'output': {'answer': 'Viáticos con límite de reembolso.', 'citations': []}}
+    source = io.TextIOWrapper(io.BytesIO(json.dumps(request()).encode('utf-8')), encoding='cp1252')
+    output_bytes = io.BytesIO()
+    target = io.TextIOWrapper(output_bytes, encoding='cp1252')
+
+    def no_inference(coroutine):
+        coroutine.close()
+        return observation
+    with monkeypatch.context() as patch:
+        patch.setattr(caller.sys, 'stdin', source)
+        patch.setattr(caller.sys, 'stdout', target)
+        patch.setattr(caller.asyncio, 'run', no_inference)
+        caller.main()
+    raw = output_bytes.getvalue()
+    assert raw.endswith(b'\n')
+    assert json.loads(raw.decode('utf-8')) == observation
