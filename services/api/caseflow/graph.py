@@ -31,7 +31,9 @@ def progress(state, name, detail):
 async def gather(state):
     movements = await tool(state, 'get_movements')
     policy = await tool(state, 'get_policy')
-    progress(state, 'evidence_gathered', {'movement_count': len(movements['movements']), 'policy': policy['id']})
+    # The trail records the exact policy text returned by the tool so reviewers can see what was consulted.
+    progress(state, 'evidence_gathered', {'movement_count': len(movements['movements']), 'policy': policy['id'],
+                                          'policy_version': policy['version'], 'policy_text': policy['text']})
     return {'movements': movements, 'policy': policy}
 
 async def decide(state):

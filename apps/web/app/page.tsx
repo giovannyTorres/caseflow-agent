@@ -4,10 +4,13 @@ import Link from "next/link";
 import {
   api,
   ApiError,
+  consultedPolicy,
+  evidenceRetrieved,
   filterCases,
   isWorking,
   label,
   money,
+  nextAction,
   type CaseDetail,
   type CaseSummary,
   type Config,
@@ -976,7 +979,9 @@ export default function Home() {
                                 {detail.movements.length > 0 && (
                                   <>
                                     <h3 className="subheading">
-                                      Retrieved movements
+                                      {evidenceRetrieved(detail.events)
+                                        ? "Retrieved movements · MCP get_movements"
+                                        : "Disputed movements on file · not yet retrieved by the agent"}
                                     </h3>
                                     <div className="record-grid">
                                       {detail.movements.map((m, i) => (
@@ -985,6 +990,29 @@ export default function Home() {
                                     </div>
                                   </>
                                 )}
+                                {(() => {
+                                  const policy = consultedPolicy(detail.events);
+                                  return policy ? (
+                                    <>
+                                      <h3 className="subheading">
+                                        Consulted policy · MCP get_policy
+                                      </h3>
+                                      <div className="record-grid">
+                                        <DetailRecord
+                                          record={{
+                                            policy: policy.id,
+                                            ...(policy.version
+                                              ? { version: policy.version }
+                                              : {}),
+                                            ...(policy.text
+                                              ? { text: policy.text }
+                                              : {}),
+                                          }}
+                                        />
+                                      </div>
+                                    </>
+                                  ) : null;
+                                })()}
                               </>
                             ) : tab === "evidence" ? (
                               <>
@@ -995,8 +1023,9 @@ export default function Home() {
                                   </span>
                                 </div>
                                 <p className="muted">
-                                  Records returned by connected MCP tools for
-                                  this case.
+                                  Evidence requests and attached records for
+                                  this case. Retrieved movements and the
+                                  consulted policy appear in Overview.
                                 </p>
                                 {detail.evidence.length ? (
                                   <div className="record-grid">
@@ -1007,10 +1036,11 @@ export default function Home() {
                                 ) : (
                                   <div className="empty-state">
                                     <Icon name="file" size={28} />
-                                    <h3>No evidence collected yet</h3>
+                                    <h3>No evidence requests</h3>
                                     <p>
-                                      Start an investigation to request the
-                                      relevant records.
+                                      The investigation asks for extra evidence
+                                      here only when the retrieved records are
+                                      not enough.
                                     </p>
                                   </div>
                                 )}
@@ -1074,9 +1104,11 @@ export default function Home() {
                               <Icon name="bolt" size={16} />
                             </div>
                             <p className="muted">
-                              {user.role === "analyst"
-                                ? "Gather evidence and prepare a reviewable proposal."
-                                : "Review the evidence before authorizing a versioned proposal."}
+                              {nextAction(
+                                detail.status,
+                                user.role,
+                                detail.proposal?.version,
+                              )}
                             </p>
                             {["new", "investigating", "running"].includes(detail.status) ? (
                               <button

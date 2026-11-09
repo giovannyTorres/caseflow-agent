@@ -102,3 +102,63 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
   if (response.status === 204) return undefined as T;
   return response.json();
 }
+export interface ConsultedPolicy {
+  id: string;
+  version?: number;
+  text?: string;
+}
+/** Policy returned by the MCP get_policy tool, as recorded in the case trail. */
+export function consultedPolicy(events: Event[]): ConsultedPolicy | null {
+  const gathered = [...events]
+    .reverse()
+    .find((e) => e.event === "evidence_gathered");
+  const detail = gathered?.detail as Record<string, unknown> | undefined;
+  if (!detail || typeof detail.policy !== "string") return null;
+  return {
+    id: detail.policy,
+    version:
+      typeof detail.policy_version === "number"
+        ? detail.policy_version
+        : undefined,
+    text:
+      typeof detail.policy_text === "string" ? detail.policy_text : undefined,
+  };
+}
+export function evidenceRetrieved(events: Event[]) {
+  return events.some((e) => e.event === "evidence_gathered");
+}
+/** Next step for the signed-in role, derived from the persisted case status. */
+export function nextAction(status: string, role: Role, version?: number) {
+  const proposal = version ? `proposal v${version}` : "the proposal";
+  const supervisor = role === "supervisor";
+  switch (status) {
+    case "new":
+      return supervisor
+        ? "Waiting for the analyst to run the investigation."
+        : "Run the investigation to retrieve movements and policy through the MCP tools.";
+    case "investigating":
+      return "Investigation in progress. Tool results are saved as they complete.";
+    case "awaiting_approval":
+      return supervisor
+        ? `Review the evidence, then approve or reject ${proposal}.`
+        : `Waiting for a supervisor to review ${proposal}. Any edit requires a new approval.`;
+    case "approved":
+      return supervisor
+        ? `Record the simulator resolution for approved ${proposal}.`
+        : `Waiting for the supervisor to record the resolution of approved ${proposal}.`;
+    case "needs_evidence":
+      return supervisor
+        ? "Review the evidence request. Reject the case if the purchase is confirmed."
+        : "Waiting for the requested evidence. A supervisor reviews the case.";
+    case "failed":
+      return "A tool failed. Resume the investigation from its saved progress.";
+    case "interrupted":
+      return "Resume the investigation from its saved checkpoint.";
+    case "resolved":
+      return "No further action. The simulator resolution is recorded in the activity trail.";
+    case "rejected":
+      return "No further action. The rejection is recorded in the activity trail.";
+    default:
+      return "Review the case activity for the next authorized action.";
+  }
+}

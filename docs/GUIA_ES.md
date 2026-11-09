@@ -1,5 +1,18 @@
 # Guía de Caseflow Agent
 
+## Resumen del producto
+
+- **Qué es:** una mesa de investigación para cargos disputados ficticios. Un flujo LangGraph consulta herramientas MCP reales, prepara una propuesta versionada, espera la aprobación humana y registra el resultado en un simulador con trazabilidad completa.
+- **Para quién:** el **analista** que investiga y el **supervisor** que revisa y autoriza.
+- **Problema que resuelve:** reunir movimientos y políticas, entender qué ocurrió y dejar trazabilidad. La acción sensible necesita supervisión y no debe ejecutarse dos veces: la aprobación queda ligada a la versión exacta y los reintentos se rechazan.
+- **Qué es simulado:** en DEMO la **decisión** (proponer, pedir evidencia o rechazar, y su justificación) es un fixture por escenario, marcado como *DEMO decisions* y con el prefijo *"Fixture:"*. Las herramientas, permisos, persistencia, checkpoints, aprobaciones y auditoría se ejecutan de verdad. La **resolución es un registro en un simulador**: no hay reembolsos ni operaciones financieras.
+- **Qué requiere un proveedor real:** LIVE con OpenAI o Gemini para la decisión tipada. No se verificó ninguna llamada externa.
+- **Límites:** datos sintéticos, una organización, sin SSO ni integraciones reales, sin afirmaciones de calidad de modelo.
+
+**Recorrido de dos minutos:** (1) entrar como *analyst*; (2) abrir *Two charges, one purchase* y pulsar *Run investigation*; (3) revisar movimientos recuperados, política consultada, propuesta v1 y *Next action*; (4) pestaña *Activity*; (5) entrar como *supervisor*, *Approve v1* y *Record resolution*; (6) ver el caso *Resolved* y su traza; (7) reintentar la resolución desde http://localhost:3102/api/docs (POST `/api/cases/{case_id}/resolve`, `demo-001`, `{"version": 1}`): responde **409** *already resolved* y sigue habiendo una sola resolución. Opcional: editar una propuesta aprobada crea v2 y anula la aprobación anterior.
+
+## Instalación y uso
+
 Para la ruta principal necesita Docker Engine o Docker Desktop con Compose 2.24.4 o posterior. No necesita Python, Node, claves de API ni archivo `.env` en el host. Desde la carpeta del repositorio:
 
 ```sh

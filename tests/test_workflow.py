@@ -2,7 +2,7 @@ import pytest
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from caseflow.config import settings
 from caseflow.db import connection
-from caseflow.domain import approve
+from caseflow.domain import DomainError, approve
 from caseflow.graph import graph
 from caseflow.jobs import enqueue
 from caseflow.worker import claim, process
@@ -37,6 +37,24 @@ async def test_investigate_restart_approve_resolve():
     # New graph and DB connection emulate process restart with only DB state retained.
     await run_one()
     assert status('demo-001') == 'resolved'
+
+
+@pytest.mark.asyncio
+async def test_resolution_retry_is_explicitly_refused_without_duplicate():
+    enqueue('demo-001', 'analyst', 'test')
+    await run_one()
+    with connection() as conn:
+        gathered = conn.execute("SELECT detail FROM events WHERE case_id='demo-001' AND event='evidence_gathered'").fetchone()
+    assert gathered['detail']['policy'] == 'juniper-policy-v1' and 'Never exceed the disputed amount' in gathered['detail']['policy_text']
+    approve('demo-001', 'supervisor', 1, 'test')
+    enqueue('demo-001', 'supervisor', 'test', 'resolve', 1)
+    await run_one()
+    for _ in range(2):
+        with pytest.raises(DomainError, match='already resolved'):
+            enqueue('demo-001', 'supervisor', 'test', 'resolve', 1)
+    with connection() as conn:
+        assert conn.execute("SELECT count(*) AS n FROM resolutions WHERE case_id='demo-001'").fetchone()['n'] == 1
+        assert conn.execute("SELECT count(*) AS n FROM jobs WHERE case_id='demo-001' AND status IN ('queued','running')").fetchone()['n'] == 0
 
 @pytest.mark.asyncio
 async def test_insufficient_and_rejection_scenarios():
