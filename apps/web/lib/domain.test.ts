@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   consultedPolicy,
+  eventSummary,
   evidenceRetrieved,
+  sharedMovementFields,
   filterCases,
   label,
   isWorking,
@@ -70,5 +72,32 @@ describe("work queue controls", () => {
       text: "Never exceed the disputed amount.",
     });
     expect(consultedPolicy([])).toBeNull();
+  });
+  it("names the fields shared by retrieved movements", () => {
+    const a = { id: "TX-1A", merchant: "Juniper", amount: 1280, currency: "MXN", posted_at: "t" };
+    expect(sharedMovementFields([a, { ...a, id: "TX-1B" }])).toEqual([
+      "merchant",
+      "amount",
+      "currency",
+      "posted_at",
+    ]);
+    expect(sharedMovementFields([a, { ...a, amount: 1 }])).not.toContain("amount");
+    expect(sharedMovementFields([a])).toEqual([]);
+  });
+  it("summarizes audit events as readable sentences", () => {
+    const base = { id: "1", actor: "supervisor", created_at: "" };
+    expect(
+      eventSummary({ ...base, event: "proposal_prepared", detail: { version: 2, amount: 900 } }),
+    ).toBe("Proposal v2 · MX$900.00");
+    expect(
+      eventSummary({
+        ...base,
+        event: "evidence_gathered",
+        detail: { movement_count: 2, policy: "juniper-policy-v1", policy_version: 1 },
+      }),
+    ).toBe("2 movements retrieved · policy juniper-policy-v1 v1");
+    expect(eventSummary({ ...base, event: "custom_event", detail: { note: "ok", n: 3 } })).toBe(
+      "Note: ok · N: 3",
+    );
   });
 });

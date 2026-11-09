@@ -10,7 +10,7 @@ async function login(
   await page.getByLabel("Workspace role").selectOption(role);
   await page.getByRole("button", { name: "Enter workspace" }).click();
   await expect(
-    page.getByRole("heading", { name: "Clarity for every case." }),
+    page.getByRole("heading", { name: "Case inbox", exact: true }),
   ).toBeVisible();
 }
 
@@ -97,7 +97,7 @@ test("responsive inbox, empty search, keyboard focus and invalid credentials", a
   await page.getByLabel("Password", { exact: true }).fill("demo-pass");
   await page.getByRole("button", { name: "Enter workspace" }).click();
   await expect(
-    page.getByRole("heading", { name: "Clarity for every case." }),
+    page.getByRole("heading", { name: "Case inbox", exact: true }),
   ).toBeVisible();
   await page.getByLabel("Search cases").focus();
   await page.keyboard.press("Tab");

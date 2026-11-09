@@ -162,3 +162,49 @@ export function nextAction(status: string, role: Role, version?: number) {
       return "Review the case activity for the next authorized action.";
   }
 }
+const MATCH_FIELDS = ["merchant", "amount", "currency", "posted_at"] as const;
+/** Fields whose values are identical across every retrieved movement (2+ movements). */
+export function sharedMovementFields(movements: Record<string, unknown>[]) {
+  if (movements.length < 2) return [];
+  return MATCH_FIELDS.filter((field) =>
+    movements.every(
+      (m) => m[field] !== undefined && m[field] === movements[0][field],
+    ),
+  );
+}
+function amountText(value: unknown, currency = "MXN") {
+  return typeof value === "number" ? money(value, currency) : String(value);
+}
+/** One readable sentence per audit event; falls back to key/value pairs. */
+export function eventSummary(event: Event, currency = "MXN"): string {
+  const d = (event.detail ?? {}) as Record<string, unknown>;
+  switch (event.event) {
+    case "job_queued":
+      return `${label(String(d.action ?? "job"))} job queued`;
+    case "evidence_gathered":
+      return `${d.movement_count ?? 0} movements retrieved · policy ${d.policy ?? "unknown"}${d.policy_version ? ` v${d.policy_version}` : ""}`;
+    case "decision_prepared":
+      return `${String(d.mode ?? "")} decision: ${label(String(d.action ?? ""))}`.trim();
+    case "proposal_prepared":
+      return `Proposal v${d.version} · ${amountText(d.amount, currency)}`;
+    case "proposal_approved":
+      return `Approved proposal v${d.version}`;
+    case "proposal_rejected":
+      return `Rejected proposal v${d.version}`;
+    case "resolution_registered":
+      return `Simulator resolution for v${d.version} · ${amountText(d.amount, currency)}`;
+    case "evidence_requested":
+      return String(d.description ?? "Evidence requested");
+    case "rejection_recommended":
+      return String(d.message ?? "Rejection recommended");
+    case "job_waiting":
+      return "Paused at the approval checkpoint";
+    case "job_completed":
+      return "Workflow step completed";
+  }
+  if (typeof event.detail === "string") return event.detail;
+  const pairs = Object.entries(d)
+    .filter(([, v]) => ["string", "number", "boolean"].includes(typeof v))
+    .map(([k, v]) => `${label(k)}: ${v}`);
+  return pairs.join(" · ");
+}
