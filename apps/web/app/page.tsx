@@ -359,45 +359,50 @@ export default function Home() {
             Aster Finance<small>Synthetic organization</small>
           </span>
         </div>
-        <p className="nav-label">Workspace</p>
-        <nav aria-label="Main navigation">
-          <button
-            className="nav-item active"
-            onClick={() => {
-              setSelected("");
-              setDetail(null);
-              setStatus("all");
-              setQuery("");
-              setPriorityFilter("all");
-              setAssigneeFilter("all");
-            }}
-          >
-            <Icon name="grid" />
-            Case inbox<span className="nav-count">{cases.length || "—"}</span>
-          </button>
-          <button
-            className="nav-item"
-            onClick={() => {
-              setStatus("awaiting_approval");
-              setSelected("");
-              setDetail(null);
-            }}
-          >
-            <Icon name="shield" />
-            Review queue
-            {pending > 0 && <span className="nav-count">{pending}</span>}
-          </button>
-          <a
-            className="nav-item"
-            href="/api/docs"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Icon name="file" />
-            API reference
-            <Icon name="arrow" size={14} />
-          </a>
-        </nav>
+        {user && (
+          <>
+            <p className="nav-label">Workspace</p>
+            <nav aria-label="Main navigation">
+              <button
+                className="nav-item active"
+                onClick={() => {
+                  setSelected("");
+                  setDetail(null);
+                  setStatus("all");
+                  setQuery("");
+                  setPriorityFilter("all");
+                  setAssigneeFilter("all");
+                }}
+              >
+                <Icon name="grid" />
+                Case inbox<span className="nav-count">{cases.length || "—"}</span>
+              </button>
+              <button
+                className="nav-item"
+                onClick={() => {
+                  setStatus("awaiting_approval");
+                  setSelected("");
+                  setDetail(null);
+                }}
+              >
+                <Icon name="shield" />
+                Review queue
+                {pending > 0 && <span className="nav-count">{pending}</span>}
+              </button>
+              <a
+                className="nav-item"
+                href="/api/docs"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="file" />
+                API reference
+                <Icon name="arrow" size={14} />
+              </a>
+            </nav>
+          </>
+        )}
+        {user && (
         <div className="sidebar-bottom">
           <div className="user-card">
             <span className="avatar">
@@ -420,12 +425,15 @@ export default function Home() {
             )}
           </div>
         </div>
+        )}
       </aside>
       <div className="main-shell">
         <header className="topbar">
           <div className="breadcrumb">
             Workspace <span>/</span>{" "}
-            <strong>{selected ? "Case investigation" : "Case inbox"}</strong>
+            <strong>
+              {!user ? "Sign in" : selected ? "Case investigation" : "Case inbox"}
+            </strong>
           </div>
           <div className="topbar-right">
             <span
@@ -787,7 +795,7 @@ export default function Home() {
                           </div>
                         </div>
                         <div
-                          className={`workflow-step ${detail.proposal ? "done" : isWorking(detail.job) ? "current" : ""}`}
+                          className={`workflow-step ${detail.proposal || evidenceRetrieved(detail.events) ? "done" : isWorking(detail.job) ? "current" : ""}`}
                         >
                           <span>2</span>
                           <div>
@@ -796,7 +804,7 @@ export default function Home() {
                           </div>
                         </div>
                         <div
-                          className={`workflow-step ${detail.proposal?.status === "approved" || detail.status === "resolved" ? "done" : detail.proposal ? "current" : ""}`}
+                          className={`workflow-step ${["approved", "resolved", "rejected"].includes(detail.status) ? "done" : detail.proposal || detail.status === "needs_evidence" ? "current" : ""}`}
                         >
                           <span>3</span>
                           <div>
@@ -906,11 +914,11 @@ export default function Home() {
                                     <span className="large-icon">
                                       <Icon name="bolt" size={28} />
                                     </span>
-                                    <h3>Evidence starts the conversation.</h3>
+                                    <h3>No findings yet</h3>
                                     <p>
-                                      Run this scenario to retrieve movements
-                                      and policy, request evidence, and prepare
-                                      the next step.
+                                      The investigation retrieves the movements
+                                      and the policy, then proposes a
+                                      resolution or requests more evidence.
                                     </p>
                                   </div>
                                 )}

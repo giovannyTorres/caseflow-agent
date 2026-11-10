@@ -21,9 +21,9 @@
 | Time | Do this | What it shows |
 |---|---|---|
 | 0:00–0:10 | Open http://localhost:3102, keep role **analyst** (password `demo-pass` is prefilled in DEMO) and click **Enter workspace**. | Inbox of five fictional cases; DEMO mode is always visible. |
-| 0:10–0:40 | Open **Two charges, one purchase** and click **Run investigation**. Wait a few seconds. | *Retrieved movements · MCP get_movements* (two identical charges), *Consulted policy · MCP get_policy*, proposal **v1** with its justification, and *Next action: waiting for a supervisor*. |
+| 0:10–0:40 | Open **Two charges, one purchase** and click **Run investigation**. Wait a few seconds. | A *Retrieved movements* table that flags what both charges share (same merchant, amount, currency and posting time), the *Consulted policy* returned by the MCP tool, proposal **v1** with its justification, and *Next action: waiting for a supervisor*. |
 | 0:40–0:50 | Open the **Activity** tab. | Tool calls, decision and proposal events with actor and time. No private model reasoning is shown. |
-| 0:50–1:20 | Sign out, sign in as **supervisor**, open the same case, click **Approve v1** and confirm. Then **Record resolution** and confirm. | The approval dialog applies only to v1. The case becomes **Resolved** in the simulator. |
+| 0:50–1:20 | Sign out, sign in as **supervisor**, open the same case, click **Approve v1** and confirm. **Record resolution** appears only after the approval; click it and confirm. | The approval dialog applies only to v1. The case becomes **Resolved** in the simulator. |
 | 1:20–1:35 | Open **Activity** again. | *Proposal Approved {version 1}*, *Resolution Registered*, *Job Completed*. |
 | 1:35–2:00 | Retry the resolution: open http://localhost:3102/api/docs, expand **POST /api/cases/{case_id}/resolve**, *Try it out*, `case_id` = `demo-001`, body `{"version": 1}`, *Execute* (same browser session). | **409**: *"This case is already resolved. The recorded simulator resolution was kept; no new action was created."* Still one resolution. |
 
