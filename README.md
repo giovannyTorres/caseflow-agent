@@ -1,6 +1,55 @@
 # Caseflow Agent
 
-A working investigation desk for **fictional charges**, built with Next.js, FastAPI, PostgreSQL, LangGraph and an actual MCP client/server. No real financial operations, regulatory compliance claims or customer data.
+**A review desk for disputed card charges: an agent gathers the movements and the policy through tools, proposes a resolution with its justification, and nothing is executed until a supervisor approves that exact proposal version.**
+
+![Actual Caseflow browser screenshot](docs/screenshots/audit-caseflow-resolved.png)
+
+## Product at a glance
+
+| Question | Answer |
+|---|---|
+| **What is it?** | An investigation desk for fictional disputed charges. A durable LangGraph workflow calls real MCP tools, prepares a versioned proposal, waits for human approval and then records the outcome in a simulator, with a full audit trail. |
+| **Who is it for?** | The **analyst** who investigates the dispute and the **supervisor** who reviews and authorizes the proposed resolution. |
+| **What problem does it solve?** | Resolving a dispute means collecting movements and policies, understanding what happened and leaving a trace of the proposal. A sensitive action needs supervision and must not run twice by mistake. Caseflow binds approval to an exact proposal version and refuses duplicate resolutions. |
+| **What can it do today?** | Five synthetic cases (duplicate charge, missing delivery evidence, purchase confirmed by the customer, merchant feed outage, interrupted run). The analyst runs an investigation that retrieves movements and policy through MCP; the proposal and its justification appear next to the evidence; the supervisor approves or rejects the exact version; editing a proposal invalidates the previous approval; the resolution is recorded once and later retries are refused; every step is in the activity trail with actor and time. |
+| **What is simulated?** | In DEMO the **decision** (propose, request evidence or reject, and its reason) is a per-scenario fixture, shown under *DEMO decisions* and prefixed *"Fixture:"*. Tool calls, authorization, persistence, checkpoints, approvals and the audit trail run for real. The **resolution is a row in a simulator table**: no refunds, no payment systems, no customer messages. |
+| **What needs a real model provider?** | LIVE mode asks OpenAI or Gemini for the typed decision (API keys in the backend). **No external model call has been verified**; adapters are tested against simulated HTTP transports only. The simulator stays synthetic even in LIVE. |
+| **Main limitations** | Synthetic data and one fictional organization; no SSO; no merchant or bank integration; no model-quality claims; server-side authorization does not prove immunity to prompt injection; Azure files are configuration, not a deployment. |
+
+## Two-minute demo
+
+| Time | Do this | What it shows |
+|---|---|---|
+| 0:00–0:10 | Open http://localhost:3102, keep role **analyst** (password `demo-pass` is prefilled in DEMO) and click **Enter workspace**. | Inbox of five fictional cases; DEMO mode is always visible. |
+| 0:10–0:40 | Open **Two charges, one purchase** and click **Run investigation**. Wait a few seconds. | A *Retrieved movements* table that flags what both charges share (same merchant, amount, currency and posting time), the *Consulted policy* returned by the MCP tool, proposal **v1** with its justification, and *Next action: waiting for a supervisor*. |
+| 0:40–0:50 | Open the **Activity** tab. | Tool calls, decision and proposal events with actor and time. No private model reasoning is shown. |
+| 0:50–1:20 | Sign out, sign in as **supervisor**, open the same case, click **Approve v1** and confirm. **Record resolution** appears only after the approval; click it and confirm. | The approval dialog applies only to v1. The case becomes **Resolved** in the simulator. |
+| 1:20–1:35 | Open **Activity** again. | *Proposal Approved {version 1}*, *Resolution Registered*, *Job Completed*. |
+| 1:35–2:00 | Retry the resolution: open http://localhost:3102/api/docs, expand **POST /api/cases/{case_id}/resolve**, *Try it out*, `case_id` = `demo-001`, body `{"version": 1}`, *Execute* (same browser session). | **409**: *"This case is already resolved. The recorded simulator resolution was kept; no new action was created."* Still one resolution. |
+
+Optional, to show approval invalidation: open **Merchant feed unavailable**, run the investigation, then **Resume investigation** after the simulated outage. Approve v1 as supervisor, sign in as analyst and use **Edit proposal**. The proposal becomes **v2**, its status returns to *Awaiting Approval* and resolving v1 is refused until v2 is approved.
+
+Without the browser (Linux, macOS or Git Bash on Windows), the same retry check is:
+
+```sh
+curl -s -c cf.cookies -H 'content-type: application/json' -d '{"username":"supervisor","password":"demo-pass"}' http://localhost:3102/api/auth/login
+curl -s -b cf.cookies -H 'content-type: application/json' -d '{"version":1}' -w '\nHTTP %{http_code}\n' http://localhost:3102/api/cases/demo-001/resolve
+```
+
+The interactive API page loads Swagger UI assets from `cdn.jsdelivr.net`, so it needs internet access; the application itself does not.
+
+## What has been verified and what is pending
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Clean Docker build and start (`db`, `api`, `worker`, `web` healthy) | Verified | Fresh Compose install in an isolated workspace, 2026-11-09 |
+| Analyst → supervisor → resolution walkthrough in a real browser | Verified | Playwright suite (7 flows) against the running containers |
+| Approval bound to the exact version; edits invalidate it; amount cannot exceed the dispute | Verified | Direct HTTP checks and `tests/test_security.py`, `tests/test_audit_execution.py` |
+| Retries and concurrent resolution requests create one resolution | Verified | Four concurrent requests returned the same job; `test_resolution_retry_is_explicitly_refused_without_duplicate` |
+| Tool outage and interrupted runs resume from the saved checkpoint | Verified | `tests/test_workflow.py` and browser flow |
+| OpenAI/Gemini structured decisions, truncation and refusal handling | Contract-tested with simulated transports only | `tests/test_providers.py` |
+| Real model decisions and their quality | **Not verified** | Needs API keys |
+| Azure deployment | **Not verified** | Configuration only |
 
 ## Install and start DEMO
 
@@ -38,9 +87,7 @@ For host development, the verified alternative `./scripts/demo-local.sh` require
 
 DEMO replaces only model decisions with labelled scenario fixtures. Tool calls, authorization, proposals, exact-version approvals, checkpoints, audit events and simulator resolutions execute for real. LIVE never falls back to DEMO.
 
-![Actual Caseflow browser screenshot](docs/screenshots/audit-caseflow-resolved.png)
-
-## Two-minute demonstration
+## More scenarios
 
 1. Sign in as analyst; select **Two charges, one purchase** and investigate. The worker retrieves movements and policy through MCP and creates proposal version 1.
 2. Inspect movements, user-facing explanation and the event timeline. No private model reasoning is shown.

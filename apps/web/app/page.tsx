@@ -4,10 +4,15 @@ import Link from "next/link";
 import {
   api,
   ApiError,
+  consultedPolicy,
+  eventSummary,
+  evidenceRetrieved,
   filterCases,
   isWorking,
   label,
   money,
+  nextAction,
+  sharedMovementFields,
   type CaseDetail,
   type CaseSummary,
   type Config,
@@ -344,61 +349,61 @@ export default function Home() {
             <span />
             <span />
           </span>
-          caseflow<span className="brand-dot">.</span>
+          <span>
+            caseflow<span className="brand-dot">.</span>
+          </span>
         </Link>
         <div className="workspace-label">
           <span className="org-logo">A</span>
           <span>
             Aster Finance<small>Synthetic organization</small>
           </span>
-          <span className="workspace-chevron">⌄</span>
         </div>
-        <p className="nav-label">WORKSPACE</p>
-        <nav aria-label="Main navigation">
-          <button
-            className="nav-item active"
-            onClick={() => {
-              setSelected("");
-              setDetail(null);
-              setStatus("all");
-              setQuery("");
-              setPriorityFilter("all");
-              setAssigneeFilter("all");
-            }}
-          >
-            <Icon name="grid" />
-            Case inbox<span className="nav-count">{cases.length || "—"}</span>
-          </button>
-          <button
-            className="nav-item"
-            onClick={() => {
-              setStatus("awaiting_approval");
-              setSelected("");
-              setDetail(null);
-            }}
-          >
-            <Icon name="shield" />
-            Review queue
-            {pending > 0 && <span className="nav-count">{pending}</span>}
-          </button>
-          <a
-            className="nav-item"
-            href="/api/docs"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Icon name="file" />
-            API reference
-            <Icon name="arrow" size={14} />
-          </a>
-        </nav>
+        {user && (
+          <>
+            <p className="nav-label">Workspace</p>
+            <nav aria-label="Main navigation">
+              <button
+                className="nav-item active"
+                onClick={() => {
+                  setSelected("");
+                  setDetail(null);
+                  setStatus("all");
+                  setQuery("");
+                  setPriorityFilter("all");
+                  setAssigneeFilter("all");
+                }}
+              >
+                <Icon name="grid" />
+                Case inbox<span className="nav-count">{cases.length || "—"}</span>
+              </button>
+              <button
+                className="nav-item"
+                onClick={() => {
+                  setStatus("awaiting_approval");
+                  setSelected("");
+                  setDetail(null);
+                }}
+              >
+                <Icon name="shield" />
+                Review queue
+                {pending > 0 && <span className="nav-count">{pending}</span>}
+              </button>
+              <a
+                className="nav-item"
+                href="/api/docs"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="file" />
+                API reference
+                <Icon name="arrow" size={14} />
+              </a>
+            </nav>
+          </>
+        )}
+        {user && (
         <div className="sidebar-bottom">
-          <div className="trust-card">
-            <Icon name="shield" />
-            <strong>Decisions with a record</strong>
-            <p>Tools gather evidence. People authorize the outcome.</p>
-            <span>Human approval required</span>
-          </div>
           <div className="user-card">
             <span className="avatar">
               {user?.role === "supervisor" ? "S" : "A"}
@@ -420,12 +425,15 @@ export default function Home() {
             )}
           </div>
         </div>
+        )}
       </aside>
       <div className="main-shell">
         <header className="topbar">
           <div className="breadcrumb">
             Workspace <span>/</span>{" "}
-            <strong>{selected ? "Case investigation" : "Case inbox"}</strong>
+            <strong>
+              {!user ? "Sign in" : selected ? "Case investigation" : "Case inbox"}
+            </strong>
           </div>
           <div className="topbar-right">
             <span
@@ -435,7 +443,6 @@ export default function Home() {
               {mode.toUpperCase()} MODE
             </span>
             <span className="environment-label">Synthetic data only</span>
-            <span className="top-avatar">AF</span>
           </div>
         </header>
         <main id="main">
@@ -468,9 +475,6 @@ export default function Home() {
           ) : !user ? (
             <section className="login-layout">
               <div className="login-intro">
-                <span className="eyebrow">
-                  <i /> AN ACCOUNTABLE AGENT WORKSPACE
-                </span>
                 <h1>
                   From a disputed charge
                   <br />
@@ -495,22 +499,15 @@ export default function Home() {
                   </span>
                 </div>
                 <div className="process-preview">
-                  <span>
-                    01<b>Investigate</b>
-                  </span>
+                  <span>Analyst investigates</span>
                   <Icon name="arrow" />
-                  <span>
-                    02<b>Review</b>
-                  </span>
+                  <span>Supervisor approves</span>
                   <Icon name="arrow" />
-                  <span>
-                    03<b>Resolve</b>
-                  </span>
+                  <span>Simulator records once</span>
                 </div>
               </div>
               <form className="login-card" onSubmit={login}>
-                <div className="section-kicker">ENTER THE WORKSPACE</div>
-                <h2>Your next case awaits.</h2>
+                <h2>Sign in</h2>
                 <p>{mode === "DEMO" ? "Choose a demo role to explore a complete investigation." : "Sign in with the account provisioned by your operator."}</p>
                 {mode === "DEMO" ? <>
                 <label htmlFor="persona">Workspace role</label>
@@ -567,15 +564,11 @@ export default function Home() {
                 <>
                   <section className="page-heading">
                     <div>
-                      <span className="eyebrow">
-                        OPERATIONS / INVESTIGATIONS
-                      </span>
-                      <h1>
-                        Clarity for every case<span>.</span>
-                      </h1>
+                      <h1>Case inbox</h1>
                       <p>
-                        Your investigation queue. Evidence first, decisions
-                        together.
+                        Disputed charges waiting for investigation or
+                        supervisor review. Every amount and identity is
+                        synthetic.
                       </p>
                     </div>
                     <button
@@ -596,47 +589,33 @@ export default function Home() {
                     <div className="stat">
                       <div>
                         <span>Active cases</span>
-                        <strong>{active.toString().padStart(2, "0")}</strong>
+                        <strong>{active}</strong>
                         <small>Ready for your next action</small>
                       </div>
-                      <span className="stat-icon purple">
-                        <Icon name="grid" />
-                      </span>
                     </div>
                     <div className="stat">
                       <div>
                         <span>Awaiting review</span>
-                        <strong>{pending.toString().padStart(2, "0")}</strong>
+                        <strong>{pending}</strong>
                         <small>Human authorization needed</small>
                       </div>
-                      <span className="stat-icon amber">
-                        <Icon name="shield" />
-                      </span>
                     </div>
                     <div className="stat">
                       <div>
                         <span>Resolved</span>
-                        <strong>{resolved.toString().padStart(2, "0")}</strong>
+                        <strong>{resolved}</strong>
                         <small>Recorded in the simulator</small>
                       </div>
-                      <span className="stat-icon green">
-                        <Icon name="check" />
-                      </span>
                     </div>
                   </section>
                   <section className="queue-panel">
                     <div className="panel-heading">
                       <div>
                         <h2>
-                          Case inbox{" "}
+                          Cases{" "}
                           <span className="soft-count">{cases.length}</span>
                         </h2>
-                        <p>Five scenarios. A complete, traceable workflow.</p>
                       </div>
-                      <span className="small-indicator">
-                        <i />
-                        Workspace connected
-                      </span>
                     </div>
                     <div className="filters">
                       <label className="search">
@@ -705,10 +684,10 @@ export default function Home() {
                     </div>
                     <div className="case-table">
                       <div className="table-head">
-                        <span>CASE / SCENARIO</span>
-                        <span>PRIORITY</span>
-                        <span>AMOUNT</span>
-                        <span>STATUS</span>
+                        <span>Case</span>
+                        <span>Priority</span>
+                        <span>Amount</span>
+                        <span>Status</span>
                         <span />
                       </div>
                       {visible.map((c) => (
@@ -723,20 +702,6 @@ export default function Home() {
                           }}
                         >
                           <div className="case-name">
-                            <span
-                              className={`case-symbol ${c.scenario.includes("duplicate") ? "purple" : c.scenario.includes("fail") ? "amber" : "blue"}`}
-                            >
-                              <Icon
-                                name={
-                                  c.scenario.includes("duplicate")
-                                    ? "file"
-                                    : c.scenario.includes("interrupt")
-                                      ? "clock"
-                                      : "shield"
-                                }
-                                size={20}
-                              />
-                            </span>
                             <div>
                               <strong>{c.title}</strong>
                               <small>
@@ -785,22 +750,6 @@ export default function Home() {
                       </span>
                     </div>
                   </section>
-                  <section className="explain-strip">
-                    <div className="strip-icon">
-                      <Icon name="bolt" />
-                    </div>
-                    <div>
-                      <h3>Automation you can inspect.</h3>
-                      <p>
-                        Open a case to follow tool execution, inspect a
-                        versioned proposal, and review the approval trail.
-                      </p>
-                    </div>
-                    <span className="text-link">
-                      Start with a duplicate charge{" "}
-                      <Icon name="arrow" size={16} />
-                    </span>
-                  </section>
                 </>
               ) : (
                 <>
@@ -846,7 +795,7 @@ export default function Home() {
                           </div>
                         </div>
                         <div
-                          className={`workflow-step ${detail.proposal ? "done" : isWorking(detail.job) ? "current" : ""}`}
+                          className={`workflow-step ${detail.proposal || evidenceRetrieved(detail.events) ? "done" : isWorking(detail.job) ? "current" : ""}`}
                         >
                           <span>2</span>
                           <div>
@@ -855,7 +804,7 @@ export default function Home() {
                           </div>
                         </div>
                         <div
-                          className={`workflow-step ${detail.proposal?.status === "approved" || detail.status === "resolved" ? "done" : detail.proposal ? "current" : ""}`}
+                          className={`workflow-step ${["approved", "resolved", "rejected"].includes(detail.status) ? "done" : detail.proposal || detail.status === "needs_evidence" ? "current" : ""}`}
                         >
                           <span>3</span>
                           <div>
@@ -965,26 +914,88 @@ export default function Home() {
                                     <span className="large-icon">
                                       <Icon name="bolt" size={28} />
                                     </span>
-                                    <h3>Evidence starts the conversation.</h3>
+                                    <h3>No findings yet</h3>
                                     <p>
-                                      Run this scenario to retrieve movements
-                                      and policy, request evidence, and prepare
-                                      the next step.
+                                      The investigation retrieves the movements
+                                      and the policy, then proposes a
+                                      resolution or requests more evidence.
                                     </p>
                                   </div>
                                 )}
-                                {detail.movements.length > 0 && (
-                                  <>
-                                    <h3 className="subheading">
-                                      Retrieved movements
-                                    </h3>
-                                    <div className="record-grid">
-                                      {detail.movements.map((m, i) => (
-                                        <DetailRecord key={i} record={m} />
-                                      ))}
-                                    </div>
-                                  </>
-                                )}
+                                {detail.movements.length > 0 && (() => {
+                                  const shared = sharedMovementFields(detail.movements);
+                                  const columns = ["id", "merchant", "amount", "currency", "posted_at"].filter(
+                                    (k) => detail.movements.some((m) => m[k] !== undefined),
+                                  );
+                                  return (
+                                    <section className="evidence-block">
+                                      <div className="evidence-heading">
+                                        <h3 className="subheading">
+                                          {evidenceRetrieved(detail.events)
+                                            ? "Retrieved movements"
+                                            : "Disputed movements on file"}
+                                        </h3>
+                                        <span className="source-tag">
+                                          {evidenceRetrieved(detail.events)
+                                            ? "MCP · get_movements"
+                                            : "Not yet retrieved by the agent"}
+                                        </span>
+                                      </div>
+                                      <div className="table-scroll">
+                                        <table className="movement-table">
+                                          <thead>
+                                            <tr>
+                                              {columns.map((k) => (
+                                                <th key={k} scope="col">
+                                                  {label(k)}
+                                                </th>
+                                              ))}
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {detail.movements.map((m, i) => (
+                                              <tr key={i}>
+                                                {columns.map((k) => (
+                                                  <td
+                                                    key={k}
+                                                    className={shared.includes(k as never) ? "same" : ""}
+                                                  >
+                                                    {k === "amount" && typeof m[k] === "number"
+                                                      ? money(m[k] as number, String(m.currency ?? detail.currency))
+                                                      : String(m[k] ?? "—")}
+                                                  </td>
+                                                ))}
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                      {shared.length > 0 && (
+                                        <p className="match-note">
+                                          <i aria-hidden="true" />
+                                          Same {shared.map((f) => (f === "posted_at" ? "posting time" : f)).join(", ")} on every movement
+                                        </p>
+                                      )}
+                                    </section>
+                                  );
+                                })()}
+                                {(() => {
+                                  const policy = consultedPolicy(detail.events);
+                                  return policy ? (
+                                    <section className="evidence-block">
+                                      <div className="evidence-heading">
+                                        <h3 className="subheading">Consulted policy</h3>
+                                        <span className="source-tag">
+                                          MCP · get_policy · {policy.id}
+                                          {policy.version ? ` v${policy.version}` : ""}
+                                        </span>
+                                      </div>
+                                      {policy.text && (
+                                        <blockquote className="policy-text">{policy.text}</blockquote>
+                                      )}
+                                    </section>
+                                  ) : null;
+                                })()}
                               </>
                             ) : tab === "evidence" ? (
                               <>
@@ -995,8 +1006,9 @@ export default function Home() {
                                   </span>
                                 </div>
                                 <p className="muted">
-                                  Records returned by connected MCP tools for
-                                  this case.
+                                  Evidence requests and attached records for
+                                  this case. Retrieved movements and the
+                                  consulted policy appear in Overview.
                                 </p>
                                 {detail.evidence.length ? (
                                   <div className="record-grid">
@@ -1007,10 +1019,11 @@ export default function Home() {
                                 ) : (
                                   <div className="empty-state">
                                     <Icon name="file" size={28} />
-                                    <h3>No evidence collected yet</h3>
+                                    <h3>No evidence requests</h3>
                                     <p>
-                                      Start an investigation to request the
-                                      relevant records.
+                                      The investigation asks for extra evidence
+                                      here only when the retrieved records are
+                                      not enough.
                                     </p>
                                   </div>
                                 )}
@@ -1033,11 +1046,7 @@ export default function Home() {
                                       <span className="timeline-dot" />
                                       <div>
                                         <strong>{label(e.event)}</strong>
-                                        <p>
-                                          {typeof e.detail === "string"
-                                            ? e.detail
-                                            : JSON.stringify(e.detail)}
-                                        </p>
+                                        <p>{eventSummary(e, detail.currency)}</p>
                                         <small>
                                           {label(e.actor)} ·{" "}
                                           {new Date(
@@ -1060,7 +1069,7 @@ export default function Home() {
                         <aside className="case-aside">
                           <section className="summary-card">
                             <div className="section-kicker">
-                              DISPUTED AMOUNT
+                              Disputed amount
                             </div>
                             <div className="disputed-amount">
                               {money(detail.amount, detail.currency)}
@@ -1074,9 +1083,11 @@ export default function Home() {
                               <Icon name="bolt" size={16} />
                             </div>
                             <p className="muted">
-                              {user.role === "analyst"
-                                ? "Gather evidence and prepare a reviewable proposal."
-                                : "Review the evidence before authorizing a versioned proposal."}
+                              {nextAction(
+                                detail.status,
+                                user.role,
+                                detail.proposal?.version,
+                              )}
                             </p>
                             {["new", "investigating", "running"].includes(detail.status) ? (
                               <button
@@ -1199,24 +1210,27 @@ export default function Home() {
                                     )}
                                     {user.role === "supervisor" ? (
                                       <div className="approval-actions">
+                                        {detail.status === "approved" ? (
+                                          <button
+                                            className="button primary wide"
+                                            disabled={busy}
+                                            onClick={() => openConfirmation("resolve")}
+                                          >
+                                            <Icon name="check" size={16} />
+                                            Record resolution
+                                          </button>
+                                        ) : (
+                                          <button
+                                            className="button primary wide"
+                                            disabled={busy}
+                                            onClick={() => openConfirmation("approve")}
+                                          >
+                                            <Icon name="shield" size={16} />
+                                            Approve v{detail.proposal.version}
+                                          </button>
+                                        )}
                                         <button
-                                          className="button primary wide"
-                                          disabled={busy}
-                                          onClick={() => openConfirmation("approve")}
-                                        >
-                                          <Icon name="shield" size={16} />
-                                          Approve v{detail.proposal.version}
-                                        </button>
-                                        <button
-                                          className="button secondary wide"
-                                          disabled={busy}
-                                          onClick={() => openConfirmation("resolve")}
-                                        >
-                                          <Icon name="check" size={16} />
-                                          Record resolution
-                                        </button>
-                                        <button
-                                          className="button danger wide"
+                                          className="button ghost-danger wide"
                                           disabled={busy}
                                           onClick={() => openConfirmation("reject")}
                                         >
@@ -1264,7 +1278,7 @@ export default function Home() {
             </>
           )}
           <footer className="page-footer">
-            <span>CASEFLOW / A PORTFOLIO PRODUCT</span>
+            <span>Caseflow · portfolio project</span>
             <span>Fictional organization. No real financial actions.</span>
           </footer>
           {config && mode.toUpperCase() === "LIVE" && !config.live_ready && (

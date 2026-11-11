@@ -9,6 +9,9 @@ def enqueue(case_id, actor, correlation, action='investigate', version=None):
     with connection() as conn:
         require_actor(conn, actor, ('supervisor',) if action == 'resolve' else ('analyst', 'supervisor'))
         case = get_case(conn, case_id, True)
+        if action == 'resolve' and case['status'] == 'resolved':
+            # A retry after completion is refused explicitly; the unique resolution row is kept unchanged.
+            raise DomainError('This case is already resolved. The recorded simulator resolution was kept; no new action was created.')
         active = conn.execute("SELECT * FROM jobs WHERE case_id=%s AND status IN ('queued','running')", (case_id,)).fetchone()
         if active:
             if action == 'resolve' and (case['status'] != 'approved' or version != case['proposal_version'] or version != case['approved_version']):
