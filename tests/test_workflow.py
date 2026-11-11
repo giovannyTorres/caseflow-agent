@@ -80,9 +80,15 @@ async def test_interruption_recovery():
     enqueue('demo-005', 'analyst', 'test')
     await run_one()
     assert status('demo-005') == 'interrupted'
+    with connection() as conn:
+        waiting = conn.execute("SELECT detail FROM events WHERE case_id='demo-005' AND event='job_waiting' ORDER BY created_at").fetchall()
+    assert [row['detail']['kind'] for row in waiting] == ['interruption']
     enqueue('demo-005', 'analyst', 'test', 'resume')
     await run_one()
     assert status('demo-005') == 'awaiting_approval'
+    with connection() as conn:
+        waiting = conn.execute("SELECT detail FROM events WHERE case_id='demo-005' AND event='job_waiting' ORDER BY created_at").fetchall()
+    assert [row['detail']['kind'] for row in waiting] == ['interruption', 'approval']
 
 @pytest.mark.asyncio
 async def test_expired_worker_lease_is_reclaimed():

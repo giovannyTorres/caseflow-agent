@@ -100,4 +100,14 @@ describe("work queue controls", () => {
       "Note: ok · N: 3",
     );
   });
+  it("distinguishes waiting reasons without guessing for legacy events", () => {
+    const base = { id: "1", actor: "analyst", created_at: "", event: "job_waiting" };
+    expect(eventSummary({ ...base, detail: { job_id: "j1", kind: "interruption" } }))
+      .toBe("Investigation interrupted; resume from the checkpoint");
+    expect(eventSummary({ ...base, detail: { job_id: "j2", kind: "approval" } }))
+      .toBe("Paused at the approval checkpoint");
+    for (const detail of [{ job_id: "old" }, { kind: "other" }, null]) {
+      expect(eventSummary({ ...base, detail })).toBe("Workflow paused; checkpoint reason unavailable");
+    }
+  });
 });

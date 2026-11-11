@@ -57,8 +57,10 @@ async def execute(job, compiled):
     with connection() as conn:
         get_case(conn, job['case_id'], True)
         require_execution(conn, job['case_id'])
+        detail = {'job_id': str(job['id'])}
         if result.get('__interrupt__'):
             kind = result['__interrupt__'][0].value['kind']
+            detail['kind'] = kind
             if kind == 'interruption':
                 conn.execute("UPDATE cases SET status='interrupted' WHERE id=%s", (job['case_id'],))
             elif kind == 'approval':
@@ -68,7 +70,7 @@ async def execute(job, compiled):
             status = 'completed'
         conn.execute('UPDATE jobs SET status=%s,lease_until=NULL,updated_at=now() WHERE id=%s AND attempts=%s',
                      (status, job['id'], job['attempts']))
-        event(conn, job['case_id'], job['actor'], 'job_' + status, {'job_id': str(job['id'])}, job['correlation_id'])
+        event(conn, job['case_id'], job['actor'], 'job_' + status, detail, job['correlation_id'])
 
 
 def record_failure(job, cancelled):

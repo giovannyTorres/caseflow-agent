@@ -198,7 +198,9 @@ export function eventSummary(event: Event, currency = "MXN"): string {
     case "rejection_recommended":
       return String(d.message ?? "Rejection recommended");
     case "job_waiting":
-      return "Paused at the approval checkpoint";
+      if (d.kind === "approval") return "Paused at the approval checkpoint";
+      if (d.kind === "interruption") return "Investigation interrupted; resume from the checkpoint";
+      return "Workflow paused; checkpoint reason unavailable";
     case "job_completed":
       return "Workflow step completed";
   }
